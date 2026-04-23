@@ -18,16 +18,29 @@ docker run --rm -v "$WORK_DIR:/out" fedora:40 bash -lc '
     libicu \
     libxslt \
     woff2 \
+    gstreamer1 \
+    gstreamer1-plugins-base \
+    gstreamer1-plugins-good \
+    gstreamer1-plugins-bad-free \
     gstreamer1-plugins-bad-free-libs \
     libjxl \
     libavif \
     harfbuzz \
+    harfbuzz-icu \
     enchant2 \
     libsecret \
     hyphen \
     libwayland-server \
     libmanette \
     libatomic \
+    libevdev \
+    libgudev \
+    rav1e-libs \
+    libwebp \
+    elfutils-libs \
+    libunwind \
+    mesa-libEGL \
+    orc \
     >/dev/null
 
   rm -rf extract && mkdir -p extract

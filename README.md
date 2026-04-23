@@ -63,6 +63,13 @@ Example:
 ./out/wifiman-desktop-fedora-newer/bin/wi-fiman-desktop
 ```
 
+Verification:
+
+```sh
+./scripts/verify-fedora-newer-stage.sh
+./scripts/test-fedora-newer-stage-in-container.sh
+```
+
 Notes:
 
 - this is meant as a pragmatic newer-Fedora compatibility path, not a polished COPR-ready spec yet
