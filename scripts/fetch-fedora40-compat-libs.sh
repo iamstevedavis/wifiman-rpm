@@ -36,11 +36,13 @@ docker run --rm -v "$WORK_DIR:/out" fedora:40 bash -lc '
     libevdev \
     libgudev \
     rav1e-libs \
+    svt-av1-libs \
     libwebp \
     elfutils-libs \
     libunwind \
     mesa-libEGL \
     orc \
+    cpuinfo \
     >/dev/null
 
   rm -rf extract && mkdir -p extract

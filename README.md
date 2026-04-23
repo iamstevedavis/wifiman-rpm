@@ -76,6 +76,8 @@ Notes:
 - it currently assumes `x86_64`
 - it uses `docker` to fetch Fedora 40 runtime RPMs in a clean environment
 - compat libraries are copied as real payload files into the stage tree so the wrapper can run independently of the cache directory
+- current verification work reduced the unresolved runtime set to a single graphics-side dependency: `libEGL.so.1`
+- in practice, EGL/GLVND is likely better treated as host-provided on Fedora rather than fully privatized in the compatibility bundle
 
 ## Usage
 You can use this package by enabling the copr repository at [abn/wifiman-desktop](https://copr.fedorainfracloud.org/coprs/abn/wifiman-desktop/) as described [here](https://fedorahosted.org/copr/wiki/HowToEnableRepo).

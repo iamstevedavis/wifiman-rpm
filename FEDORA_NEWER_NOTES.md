@@ -101,6 +101,20 @@ For newer Fedora, the most realistic fix is:
 3. replace direct binary execution with a small launcher wrapper
 4. verify with `ldd` and an actual test launch on the target Fedora release
 
+## Current verification status
+
+Latest staging/verification work improved the situation substantially:
+
+- the staged private runtime resolves the major WebKitGTK 4.0 / libsoup2 compatibility break
+- local verification reduced the unresolved set to a very small tail
+- Fedora-container verification showed the remaining runtime issues are now mostly edge dependencies rather than the original hard blocker
+
+Known remaining caveat:
+
+- EGL is awkward because Fedora's Mesa packaging exposes `libEGL_mesa.so.0` under the GLVND model rather than a simple private `libEGL.so.1` payload in the extracted compat set
+- that means the final RPM may be better off relying on the host EGL/GLVND stack instead of trying to fully privatize that part
+- late-stage verification also exposed additional codec/runtime tail dependencies such as `libcpuinfo`, which are much smaller and easier to solve than the original WebKitGTK/libsoup breakage
+
 ## Notes gathered during investigation
 
 - `desktop.ea.wifiman.com/wifiman-desktop-1.1.0-amd64.deb` and `1.1.2` are still downloadable

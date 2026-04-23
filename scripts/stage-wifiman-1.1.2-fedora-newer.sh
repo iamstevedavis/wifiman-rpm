@@ -59,12 +59,15 @@ patterns=(
   'libgstfft-1.0.so*'
   'libwebpdemux.so*'
   'librav1e.so*'
+  'libSvtAv1Enc.so*'
   'libevdev.so*'
   'libgudev-1.0.so*'
   'libdw.so*'
   'libEGL.so*'
+  'libEGL_mesa.so*'
   'liborc-0.4.so*'
   'libunwind.so*'
+  'libcpuinfo.so*'
 )
 
 shopt -s nullglob
