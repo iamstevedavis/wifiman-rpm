@@ -70,6 +70,26 @@ Verification:
 ./scripts/test-fedora-newer-stage-in-container.sh
 ```
 
+Build an RPM locally on Debian/Ubuntu:
+
+```sh
+sudo apt-get update
+sudo apt-get install -y rpm desktop-file-utils
+./scripts/build-rpm-from-stage.sh
+```
+
+Artifacts are written under:
+
+```sh
+./.rpmbuild/RPMS
+./.rpmbuild/SRPMS
+```
+
+GitHub release workflow:
+
+- push a tag like `v1.1.2` to build and publish release assets
+- or run the `release` workflow manually with optional `version` / `release` inputs
+
 Notes:
 
 - this is meant as a pragmatic newer-Fedora compatibility path, not a polished COPR-ready spec yet
@@ -77,7 +97,8 @@ Notes:
 - it uses `docker` to fetch Fedora 40 runtime RPMs in a clean environment
 - compat libraries are copied as real payload files into the stage tree so the wrapper can run independently of the cache directory
 - current verification work reduced the unresolved runtime set to a single graphics-side dependency: `libEGL.so.1`
-- in practice, EGL/GLVND is likely better treated as host-provided on Fedora rather than fully privatized in the compatibility bundle
+- in practice, EGL/GLVND is treated as host-provided on Fedora rather than fully privatized in the compatibility bundle
+- the local RPM build path on Debian/Ubuntu relies on `rpmbuild` plus the existing stage scripts; Docker is still used for fetching Fedora 40 compatibility libraries
 
 ## Usage
 You can use this package by enabling the copr repository at [abn/wifiman-desktop](https://copr.fedorainfracloud.org/coprs/abn/wifiman-desktop/) as described [here](https://fedorahosted.org/copr/wiki/HowToEnableRepo).

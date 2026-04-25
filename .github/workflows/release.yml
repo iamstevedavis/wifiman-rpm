@@ -1,0 +1,59 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Upstream WiFiman Desktop version to package'
+        required: false
+        default: '1.1.2'
+      release:
+        description: 'RPM release number'
+        required: false
+        default: '1'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ inputs.version || '1.1.2' }}
+      RELEASE: ${{ inputs.release || '1' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm desktop-file-utils
+
+      - name: Build RPM
+        run: ./scripts/build-rpm-from-stage.sh
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p dist
+          find .rpmbuild/RPMS .rpmbuild/SRPMS -type f \( -name '*.rpm' -o -name '*.src.rpm' \) -exec cp -v {} dist/ \;
+          ls -lah dist
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wifiman-desktop-rpms-${{ env.VERSION }}
+          path: dist/*
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

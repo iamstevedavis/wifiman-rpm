@@ -5,10 +5,16 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 STAGE_DIR=${1:-"$ROOT_DIR/out/wifiman-desktop-fedora-newer"}
 UPSTREAM_VERSION=${UPSTREAM_VERSION:-1.1.2}
 UPSTREAM_URL=${UPSTREAM_URL:-"https://desktop.ea.wifiman.com/wifiman-desktop-${UPSTREAM_VERSION}-amd64.deb"}
+ARCH=${ARCH:-x86_64}
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 mkdir -p "$STAGE_DIR"
+
+if [[ "$ARCH" != "x86_64" ]]; then
+  echo "unsupported ARCH: $ARCH (only x86_64 is currently supported)" >&2
+  exit 1
+fi
 
 curl -fsSLo "$TMP_DIR/wifiman.deb" -A 'Mozilla/5.0' "$UPSTREAM_URL"
 
@@ -77,14 +83,21 @@ for pattern in "${patterns[@]}"; do
   done
 done
 
-cat > "$STAGE_DIR/README.txt" <<'EOF'
+cat > "$STAGE_DIR/README.txt" <<EOF
 Staged WiFiman Desktop for newer Fedora.
+
+Upstream version: $UPSTREAM_VERSION
+Architecture: $ARCH
+Source URL: $UPSTREAM_URL
 
 Run:
   ./bin/wi-fiman-desktop
 
 This wrapper uses a private compatibility runtime under:
   ./compat/lib64
+
+Note:
+  libEGL.so.1 is expected to be provided by the host GLVND/EGL stack.
 EOF
 
 echo "Staged at: $STAGE_DIR"
