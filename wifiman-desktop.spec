@@ -40,7 +40,6 @@ Requires:       gdk-pixbuf2
 Requires:       systemd
 Requires:       wireguard-tools
 Requires:       dbus-x11
-Requires:       wireless-tools
 
 %description
 WiFiman Desktop packaged for newer Fedora releases using an app-private

@@ -17,7 +17,7 @@ The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime sta
 On Fedora:
 
 ```bash
-sudo dnf install -y docker git policycoreutils-python-utils setools-console wireless-tools
+sudo dnf install -y docker git policycoreutils-python-utils setools-console
 sudo systemctl enable --now docker
 ```
 
@@ -99,7 +99,7 @@ wi-fiman-desktop
 
 The upstream daemon uses raw ICMP / raw socket operations for device discovery and related networking behavior. On Fedora with SELinux enforcing, that can trigger denials until a local policy module is installed.
 
-This package now seeds a minimal valid `service.json` so the daemon does not crash on first run due to an empty config file, runs the packaged daemon through a small wrapper that redirects logs into `/var/lib/wifiman-desktop`, and pulls in `wireless-tools` for `iwgetid`.
+This package now seeds a minimal valid `service.json` so the daemon does not crash on first run due to an empty config file and runs the packaged daemon through a small wrapper that redirects logs into `/var/lib/wifiman-desktop`.
 
 Generate and install the local policy module:
 
