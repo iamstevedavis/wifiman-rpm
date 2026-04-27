@@ -2,149 +2,142 @@
 %define _build_id_links none
 %define debug_package %{nil}
 
-Name:     wifiman-desktop
-Version:  0.3.0
-Release:  3
-Summary:  Discover devices and access Teleport VPNs
-License:  MIT
-Vendor:   Ubiquiti Inc. <monitoring@wifiman.com>
-URL:      https://wifiman.com/
+Name:           wifiman-desktop
+Version:        1.1.2
+Release:        1%{?dist}
+Summary:        Discover devices and access Teleport VPNs
+License:        MIT
+Vendor:         Ubiquiti Inc. <monitoring@wifiman.com>
+URL:            https://wifiman.com/
+Source0:        %{name}-%{version}-stage.tar.gz
+Source1:        LICENSE
+Source2:        wi-fiman-desktop-launcher.sh
 
-%ifarch x86_64
-Source0:  https://desktop.wifiman.com/wifiman-desktop-%{version}-linux-amd64.deb
-Source1:  https://desktop.wifiman.com/wifiman-desktop-%{version}-linux-arm64.deb
-%endif
+BuildArch:      x86_64
+BuildRequires:  desktop-file-utils
+BuildRequires:  systemd-rpm-macros
 
-%ifarch aarch64
-Source0:  https://desktop.wifiman.com/wifiman-desktop-%{version}-linux-arm64.deb
-Source1:  https://desktop.wifiman.com/wifiman-desktop-%{version}-linux-amd64.deb
-%endif
-
-Patch0:   0001-fix-desktop-exec.patch
-Patch1:   0002-fix-service-exec.patch
-
-BuildRequires: binutils
-BuildRequires: desktop-file-utils
-BuildRequires: gzip
-BuildRequires: systemd-units
-BuildRequires: tar
-BuildRequires: xz
-
-Requires: gtk3
-Requires: libsecret
-Requires: libuuid
-Requires: at-spi2-core
-Requires: xdg-utils
-Requires: libXtst
-Requires: %{_libdir}/libXss.so.1
-Requires: nss
-Requires: libnotify
-Requires: wireguard-tools
-Requires: systemd
-
-Recommends: libappindicator-gtk3
+Requires:       gtk3
+Requires:       libX11
+Requires:       libXcomposite
+Requires:       libXcursor
+Requires:       libXdamage
+Requires:       libXext
+Requires:       libXfixes
+Requires:       libXi
+Requires:       libXrandr
+Requires:       libXtst
+Requires:       mesa-libgbm
+Requires:       libglvnd-egl
+Requires:       nss
+Requires:       nspr
+Requires:       at-spi2-core
+Requires:       pango
+Requires:       cairo
+Requires:       gdk-pixbuf2
+Requires:       systemd
+Requires:       wireguard-tools
+Requires:       dbus-x11
 
 %description
-WiFiman is here to save your home or office network from sluggish surfing, endless buffering, and congested data channels.
-With this free-to-use (and ad-free) app you can:
-
-- Detect and connect to all available Wi-Fi networks devices instantly.
-- Scan network subnet for details on available devices, using Bonjour, SNMP, NetBIOS, and Ubiquiti discovery protocols.
-- Conduct download/upload speed tests, store results, compare network performance, and share your insights with others.
-- Relocate your access points (APs) to nearby data channels to instantly increase signal strength and reduce traffic volume.
-- Connect remotely to your UniFi network via Teleport VPN.
+WiFiman Desktop packaged for newer Fedora releases using an app-private
+compatibility runtime for the older WebKitGTK 4.0 / libsoup2 stack that the
+upstream 1.1.x binary still requires.
 
 %prep
-%setup -cT
-ar x %{SOURCE0}
-tar xf data.tar.xz
-%patch -P 0 -p0
-%patch -P 1 -p0
+%autosetup -c -T
+mkdir -p staged
+cd staged
+%{__tar} -xzf %{SOURCE0}
 
 %build
 
 %install
-install -D opt/WiFiman\ Desktop/service/wifiman-desktop.service %{buildroot}/%{_unitdir}/%{name}.service
+rm -rf %{buildroot}
 
-rm -f opt/WiFiman\ Desktop/service/wifiman-desktop.service
-rm -rf opt/WiFiman\ Desktop/scripts
+install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop
+install -m 0755 staged/upstream/usr/bin/wi-fiman-desktop \
+  %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
+cp -a staged/upstream/usr/lib/wi-fiman-desktop/. %{buildroot}%{_prefix}/lib/wi-fiman-desktop/
+cp -a staged/upstream/usr/share %{buildroot}%{_prefix}/
 
-install -d %{buildroot}/opt
-cp -R opt/WiFiman\ Desktop %{buildroot}/opt/wifiman-desktop
+install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
+cp -a staged/compat/lib64 %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
+cp -a staged/compat/libexec %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
 
-rm -rf usr/share/doc
-cp -R usr/share %{buildroot}/%{_datarootdir}
+install -d %{buildroot}%{_bindir}
+install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wi-fiman-desktop
 
-# this should really be using user runtime dir, but this seems to be hardcoded in the electron app
-install -d -m 777 %{buildroot}/opt/wifiman-desktop/tmp
+install -d %{buildroot}%{_unitdir}
+install -m 0644 staged/upstream/usr/lib/wi-fiman-desktop/wifiman-desktop.service \
+  %{buildroot}%{_unitdir}/%{name}.service
+
+install -d %{buildroot}%{_datadir}/applications
+install -m 0644 staged/upstream/usr/share/applications/wi-fiman-desktop.desktop \
+  %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+sed -i 's/^Comment=.*/Comment=Discover devices and access Teleport VPNs/' \
+  %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+
+install -d %{buildroot}%{_datadir}/icons/hicolor/32x32/apps
+install -m 0644 staged/upstream/usr/share/icons/hicolor/32x32/apps/wi-fiman-desktop.png \
+  %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/wi-fiman-desktop.png
+install -d %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
+install -m 0644 staged/upstream/usr/share/icons/hicolor/128x128/apps/wi-fiman-desktop.png \
+  %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/wi-fiman-desktop.png
+install -d %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps
+install -m 0644 staged/upstream/usr/share/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png \
+  %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png
+
+install -d %{buildroot}%{_datadir}/licenses/%{name}
+install -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 
 %check
-desktop-file-validate %{buildroot}/%{_datadir}/applications/%{name}.desktop
+desktop-file-validate %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
 
 %post
 %systemd_post %{name}.service
-%{__ln_s} -f /opt/wifiman-desktop/service/.env %{_sysconfdir}/%{name}
-%{__ln_s} -f /opt/wifiman-desktop/wifiman-desktop %{_bindir}/wifiman-desktop
 /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
-update-mime-database /usr/share/mime &>/dev/null
-update-desktop-database /usr/share/applications &>/dev/null
+update-desktop-database %{_datadir}/applications &>/dev/null || :
+update-mime-database %{_datadir}/mime &>/dev/null || :
 
 %preun
-pkill -SIGTERM -f /opt/wifiman-desktop/wifiman-desktop || :
 %systemd_preun %{name}.service
 
 %postun
 %systemd_postun_with_restart %{name}.service
-
 if [ $1 -eq 0 ] ; then
-    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
+    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
     /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 fi
-
-case "$1" in
-  0) # last one out put out the lights
-    rm -f %{_sysconfdir}/%{name}
-    rm -f %{_bindir}/wifiman-desktop
-    rm -rf /opt/wifiman-desktop
-  ;;
-esac
 
 %posttrans
 /usr/bin/gtk-update-icon-cache %{_datadir}/icons/hicolor &>/dev/null || :
 
 %files
-%defattr(-,root,root,-)
-%dir %attr(777, root, root) /opt/wifiman-desktop/tmp
-%attr(644, root, root) /opt/wifiman-desktop/assets/devices/*.png
-%attr(644, root, root) /opt/wifiman-desktop/assets/uidb.json
-%attr(644, root, root) /opt/wifiman-desktop/locales/*.pak
-%attr(644, root, root) /opt/wifiman-desktop/resources/app.asar
-%attr(644, root, root) /opt/wifiman-desktop/service/.env
-%attr(755, root, root) /opt/wifiman-desktop/service/wg
-%attr(755, root, root) /opt/wifiman-desktop/service/wg-quick
-%attr(755, root, root) /opt/wifiman-desktop/service/wifiman-desktopd
-%attr(755, root, root) /opt/wifiman-desktop/service/wireguard-go
-%attr(755, root, root) /opt/wifiman-desktop/chrome-sandbox
-%attr(755, root, root) /opt/wifiman-desktop/chrome_crashpad_handler
-%attr(644, root, root) /opt/wifiman-desktop/*.dat
-%attr(755, root, root) /opt/wifiman-desktop/lib*.so
-%attr(755, root, root) /opt/wifiman-desktop/lib*.so.*
-%attr(644, root, root) /opt/wifiman-desktop/LICENSE*
-%attr(644, root, root) /opt/wifiman-desktop/*.bin
-%attr(644, root, root) /opt/wifiman-desktop/*.pak
-%attr(644, root, root) /opt/wifiman-desktop/*.json
-%attr(755, root, root) /opt/wifiman-desktop/wifiman-desktop
-%attr(644, root, root) %{_datadir}/applications/%{name}.desktop
-%attr(644, root, root) %{_datadir}/icons/hicolor/*/apps/%{name}.png
-%attr(644, root, root) %{_unitdir}/%{name}.service
+%license %{_datadir}/licenses/%{name}/LICENSE
+%{_bindir}/wi-fiman-desktop
+%{_unitdir}/%{name}.service
+%{_datadir}/applications/wi-fiman-desktop.desktop
+%{_datadir}/icons/hicolor/32x32/apps/wi-fiman-desktop.png
+%{_datadir}/icons/hicolor/128x128/apps/wi-fiman-desktop.png
+%{_datadir}/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png
+%dir %{_prefix}/lib/wi-fiman-desktop
+%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
+%{_prefix}/lib/wi-fiman-desktop/.env
+%{_prefix}/lib/wi-fiman-desktop/.env.development
+%{_prefix}/lib/wi-fiman-desktop/.env.staging
+%{_prefix}/lib/wi-fiman-desktop/wg
+%{_prefix}/lib/wi-fiman-desktop/wg-quick
+%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd
+%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.service
+%{_prefix}/lib/wi-fiman-desktop/wireguard-go
+%dir %{_prefix}/lib/wi-fiman-desktop/compat
+%{_prefix}/lib/wi-fiman-desktop/compat/lib64/*
+%{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess
+%{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitWebProcess
 
 %changelog
-* Thu Sep 05 2024 Arun Babu Neelicattu <arun.neelicattu@gmail.com> 0.3.0-3
-- spec: include all arch debs in srpm (arun.neelicattu@gmail.com)
-
-* Thu Sep 05 2024 Arun Babu Neelicattu <arun.neelicattu@gmail.com> 0.3.0-2
-- tito: fetch sources for build (arun.neelicattu@gmail.com)
-
-* Thu Sep 05 2024 Arun Babu Neelicattu <arun.neelicattu@gmail.com> 0.3.0-1
-- Release 0.30.0 package built with tito
-
+* Sat Apr 25 2026 Friday <friday@local> 1.1.2-1
+- rework packaging around staged upstream 1.1.2 layout
+- bundle private compat runtime for newer Fedora releases
+- install wrapper, desktop file, icons, and systemd unit from staged tree
