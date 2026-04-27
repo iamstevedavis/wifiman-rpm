@@ -43,6 +43,7 @@ cp "$ROOT_DIR/LICENSE" "$TOPDIR/SOURCES/"
 cp "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh" "$TOPDIR/SOURCES/"
 
 docker run --rm \
+  --workdir /rpmbuild \
   -v "$TOPDIR:/rpmbuild:Z" \
   "$FEDORA_IMAGE" bash -lc '
     set -euo pipefail
@@ -53,4 +54,9 @@ docker run --rm \
   '
 
 echo
-find "$TOPDIR/RPMS" "$TOPDIR/SRPMS" -type f | sort
+artifacts=$(find "$TOPDIR/RPMS" "$TOPDIR/SRPMS" -type f | sort)
+if [[ -z "$artifacts" ]]; then
+  echo "RPM build completed without producing artifacts under $TOPDIR" >&2
+  exit 1
+fi
+printf '%s\n' "$artifacts"
