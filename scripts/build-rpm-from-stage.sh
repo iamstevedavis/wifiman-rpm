@@ -42,16 +42,19 @@ cp "$SPEC_FILE" "$TOPDIR/SPECS/"
 cp "$ROOT_DIR/LICENSE" "$TOPDIR/SOURCES/"
 cp "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh" "$TOPDIR/SOURCES/"
 
-docker run --rm \
-  --workdir /rpmbuild \
-  -v "$TOPDIR:/rpmbuild:Z" \
-  "$FEDORA_IMAGE" bash -lc '
-    set -euo pipefail
-    dnf -qy install rpm-build desktop-file-utils systemd-rpm-macros >/dev/null
-    rpmbuild \
-      --define "_topdir /rpmbuild" \
-      -ba "/rpmbuild/SPECS/wifiman-desktop.spec"
-  '
+(
+  cd /
+  docker run --rm \
+    --workdir /rpmbuild \
+    -v "$TOPDIR:/rpmbuild:Z" \
+    "$FEDORA_IMAGE" bash -lc '
+      set -euo pipefail
+      dnf -qy install rpm-build desktop-file-utils systemd-rpm-macros >/dev/null
+      rpmbuild \
+        --define "_topdir /rpmbuild" \
+        -ba "/rpmbuild/SPECS/wifiman-desktop.spec"
+    '
+)
 
 echo
 artifacts=$(find "$TOPDIR/RPMS" "$TOPDIR/SRPMS" -type f | sort)
