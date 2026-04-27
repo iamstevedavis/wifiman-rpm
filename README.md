@@ -17,7 +17,7 @@ The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime sta
 On Fedora:
 
 ```bash
-sudo dnf install -y docker git
+sudo dnf install -y docker git policycoreutils-python-utils setools-console wireless-tools
 sudo systemctl enable --now docker
 ```
 
@@ -89,16 +89,34 @@ Adjust the exact filename if the release changes:
 sudo dnf install ./.rpmbuild/RPMS/x86_64/wifiman-desktop-1.1.2-1*.rpm
 ```
 
+Launch the app:
+
+```bash
+wi-fiman-desktop
+```
+
+## Enable the daemon service on SELinux-enforcing Fedora
+
+The upstream daemon uses raw ICMP / raw socket operations for device discovery and related networking behavior. On Fedora with SELinux enforcing, that can trigger denials until a local policy module is installed.
+
+This package now seeds a minimal valid `service.json` so the daemon does not crash on first run due to an empty config file, runs the packaged daemon through a small wrapper that redirects logs into `/var/lib/wifiman-desktop`, and pulls in `wireless-tools` for `iwgetid`.
+
+Generate and install the local policy module:
+
+```bash
+./scripts/install-selinux-policy.sh
+```
+
 Then enable the daemon:
 
 ```bash
 sudo systemctl enable --now wifiman-desktop.service
 ```
 
-Launch the app:
+If the service was already failing in a restart loop, restart it after the policy install:
 
 ```bash
-wi-fiman-desktop
+sudo systemctl restart wifiman-desktop.service
 ```
 
 ## Notes
@@ -107,6 +125,7 @@ wi-fiman-desktop
 - the build uses Docker internally
 - on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
 - host EGL / GLVND pieces are expected from the Fedora system rather than fully bundled into the compat runtime
+- the daemon SELinux policy helper is a local-machine workaround, not an upstream Fedora policy integration yet
 
 ## Repo status
 

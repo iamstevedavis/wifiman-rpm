@@ -12,6 +12,8 @@ URL:            https://wifiman.com/
 Source0:        %{name}-%{version}-stage.tar.gz
 Source1:        LICENSE
 Source2:        wi-fiman-desktop-launcher.sh
+Source3:        default-service.json
+Source4:        wifiman-desktopd-wrapper.sh
 
 BuildArch:      x86_64
 BuildRequires:  desktop-file-utils
@@ -38,6 +40,7 @@ Requires:       gdk-pixbuf2
 Requires:       systemd
 Requires:       wireguard-tools
 Requires:       dbus-x11
+Requires:       wireless-tools
 
 %description
 WiFiman Desktop packaged for newer Fedora releases using an app-private
@@ -59,7 +62,10 @@ install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop
 install -m 0755 staged/upstream/usr/bin/wi-fiman-desktop \
   %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
 cp -a staged/upstream/usr/lib/wi-fiman-desktop/. %{buildroot}%{_prefix}/lib/wi-fiman-desktop/
+install -m 0644 %{SOURCE3} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/service.json
 cp -a staged/upstream/usr/share %{buildroot}%{_prefix}/
+
+install -d %{buildroot}%{_localstatedir}/lib/%{name}
 
 install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
 cp -a staged/compat/lib64 %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
@@ -73,9 +79,12 @@ install -m 0755 staged/compat/libexec/webkit2gtk-4.0/WebKitWebProcess \
 
 install -d %{buildroot}%{_bindir}
 install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wi-fiman-desktop
+install -m 0755 %{SOURCE4} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
 
 install -d %{buildroot}%{_unitdir}
 install -m 0644 staged/upstream/usr/lib/wi-fiman-desktop/wifiman-desktop.service \
+  %{buildroot}%{_unitdir}/%{name}.service
+sed -i 's#^ExecStart=.*#ExecStart=/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper#' \
   %{buildroot}%{_unitdir}/%{name}.service
 
 install -d %{buildroot}%{_datadir}/applications
@@ -135,8 +144,11 @@ fi
 %{_prefix}/lib/wi-fiman-desktop/wg
 %{_prefix}/lib/wi-fiman-desktop/wg-quick
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd
+%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.service
 %{_prefix}/lib/wi-fiman-desktop/wireguard-go
+%{_prefix}/lib/wi-fiman-desktop/service.json
+%dir %{_localstatedir}/lib/%{name}
 %dir %{_prefix}/lib/wi-fiman-desktop/compat
 %{_prefix}/lib/wi-fiman-desktop/compat/lib64/*
 %{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess
