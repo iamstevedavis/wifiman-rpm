@@ -1,115 +1,113 @@
-[![Copr Build Status](https://copr.fedorainfracloud.org/coprs/abn/wifiman-desktop/package/wifiman-desktop/status_image/last_build.png)](https://copr.fedorainfracloud.org/coprs/abn/wifiman-desktop/)
+# WiFiman Desktop RPM for newer Fedora
 
-# RPM Package: wifiman-desktop
+This repo packages upstream **WiFiman Desktop 1.1.2** for newer Fedora releases.
 
-This repository holds the RPM package source for [wifiman-desktop](https://www.ui.com/download/app/wifiman-desktop).
+The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment.
 
-## Status
+## What this repo does
 
-The original packaging in this repo targets the old `0.3.0` Debian layout. Current WiFiman Desktop (`1.1.x`) changed layout, binary names, and runtime dependencies.
+- downloads upstream `wifiman-desktop-1.1.2-amd64.deb`
+- extracts the app payload
+- pulls Fedora 40 compatibility libraries for the older WebKitGTK 4.0 stack
+- stages a runnable app tree with a wrapper
+- builds an RPM from that staged tree
 
-On newer Fedora releases, the upstream `1.1.x` binary also depends on the older WebKitGTK 4.0 / libsoup2 stack (`libwebkit2gtk-4.0.so.37`, `libsoup-2.4.so.1`, `libjavascriptcoregtk-4.0.so.18`), while newer Fedora releases have moved on to newer WebKitGTK ABI packages. That means a straight spec bump is not enough for current Fedora.
+## Requirements
 
-> WiFiman is here to save your home or office network from sluggish surfing, endless buffering, and congested data 
-> channels.
+On Fedora:
 
-> [!NOTE]  
-> This is a wrapper package of the WiFiman Desktop releases for Ubuntu available [here](https://www.ui.com/download/app/wifiman-desktop)
-> and is in no way affliated with or maintained by [Ubiquity Inc](https://ui.com/) for any application support or questions please see
-> [here](https://help.ui.com/hc/en-us).
-
-
-## Current findings for newer Fedora
-
-- Current upstream repo state is still on `0.3.0`
-- There is an open PR for `1.1.x`: <https://github.com/abn/wifiman-desktop-rpm/pull/2>
-- That PR fixes the new Debian package layout, but it is not sufficient for current Fedora releases by itself
-- Verified breakage on newer Fedora comes from missing older WebKitGTK 4.0 / libsoup2 ABI required by upstream WiFiman Desktop `1.1.x`
-
-## What needs to change
-
-For newer Fedora, this package likely needs one of these approaches:
-
-1. Bundle a private compatibility runtime for the older WebKitGTK 4.0 / libsoup2 stack and launch WiFiman with an app-local `LD_LIBRARY_PATH`
-2. Target an older Fedora base where those ABI packages still exist natively
-3. Replace the RPM approach with a more self-contained packaging format (for example AppImage/Flatpak-style packaging)
-
-## Local Fedora-newer path in this repo
-
-This repo now includes a local compatibility-staging path for newer Fedora releases:
-
-- `scripts/fetch-fedora40-compat-libs.sh`
-- `scripts/stage-wifiman-1.1.2-fedora-newer.sh`
-- `scripts/wi-fiman-desktop-wrapper.sh`
-
-What it does:
-
-1. downloads upstream WiFiman Desktop `1.1.2`
-2. extracts the Debian package payload
-3. downloads Fedora 40 compatibility RPMs for the older WebKitGTK 4.0 / libsoup2 stack
-4. extracts only the private runtime libraries needed for the app
-5. stages a local runnable tree with a wrapper that sets `LD_LIBRARY_PATH`
-
-Default stage output:
-
-```sh
-./out/wifiman-desktop-fedora-newer
+```bash
+sudo dnf install -y docker git
+sudo systemctl enable --now docker
 ```
 
-Example:
+Your user also needs Docker access:
 
-```sh
-./scripts/stage-wifiman-1.1.2-fedora-newer.sh
-./out/wifiman-desktop-fedora-newer/bin/wi-fiman-desktop
+```bash
+sudo usermod -aG docker "$USER"
+newgrp docker
 ```
 
-Verification:
+## Quick build
 
-```sh
-./scripts/verify-fedora-newer-stage.sh
-./scripts/test-fedora-newer-stage-in-container.sh
-```
+From the repo root:
 
-Build an RPM locally on Debian/Ubuntu:
-
-```sh
-sudo apt-get update
-sudo apt-get install -y rpm desktop-file-utils
+```bash
 ./scripts/build-rpm-from-stage.sh
 ```
 
-Artifacts are written under:
+That script now:
 
-```sh
+1. rebuilds the stage by default
+2. validates the required staged files exist
+3. builds the RPM in a Fedora 40 container
+
+Artifacts are written to:
+
+```bash
 ./.rpmbuild/RPMS
 ./.rpmbuild/SRPMS
 ```
 
-GitHub release workflow:
+## Step-by-step build and test
 
-- push a tag like `v1.1.2` to build and publish release assets
-- or run the `release` workflow manually with optional `version` / `release` inputs
+### 1) Build the staged app tree
 
-Notes:
-
-- this is meant as a pragmatic newer-Fedora compatibility path, not a polished COPR-ready spec yet
-- it currently assumes `x86_64`
-- it uses `docker` to fetch Fedora 40 runtime RPMs in a clean environment
-- compat libraries are copied as real payload files into the stage tree so the wrapper can run independently of the cache directory
-- current verification work reduced the unresolved runtime set to a single graphics-side dependency: `libEGL.so.1`
-- in practice, EGL/GLVND is treated as host-provided on Fedora rather than fully privatized in the compatibility bundle
-- the local RPM build path on Debian/Ubuntu relies on `rpmbuild` plus the existing stage scripts; Docker is still used for fetching Fedora 40 compatibility libraries
-
-## Usage
-You can use this package by enabling the copr repository at [abn/wifiman-desktop](https://copr.fedorainfracloud.org/coprs/abn/wifiman-desktop/) as described [here](https://fedorahosted.org/copr/wiki/HowToEnableRepo).
-
-```sh
-dnf copr enable abn/wifiman-desktop
-dnf install wifiman-desktop
+```bash
+./scripts/stage-wifiman-1.1.2-fedora-newer.sh
 ```
 
-Once installed you can enable and start the daemon using the following command, then launch the application.
+### 2) Verify library resolution locally
 
-```sh
-systemctl enable --now wifiman-desktop.service
+```bash
+./scripts/verify-fedora-newer-stage.sh
 ```
+
+### 3) Test against a Fedora container
+
+```bash
+./scripts/test-fedora-newer-stage-in-container.sh
+```
+
+### 4) Build the RPM
+
+```bash
+./scripts/build-rpm-from-stage.sh
+```
+
+### 5) Inspect the artifacts
+
+```bash
+find ./.rpmbuild/RPMS ./.rpmbuild/SRPMS -type f | sort
+```
+
+## Install the built RPM on Fedora
+
+Adjust the exact filename if the release changes:
+
+```bash
+sudo dnf install ./.rpmbuild/RPMS/x86_64/wifiman-desktop-1.1.2-1*.rpm
+```
+
+Then enable the daemon:
+
+```bash
+sudo systemctl enable --now wifiman-desktop.service
+```
+
+Launch the app:
+
+```bash
+wi-fiman-desktop
+```
+
+## Notes
+
+- this packaging path currently targets `x86_64`
+- the build uses Docker internally
+- on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
+- host EGL / GLVND pieces are expected from the Fedora system rather than fully bundled into the compat runtime
+
+## Repo status
+
+This repo is focused on the local newer-Fedora packaging path and the direct build/test/install flow for Fedora.
