@@ -125,6 +125,7 @@ sudo systemctl restart wifiman-desktop.service
 - the build uses Docker internally
 - on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
 - host EGL / GLVND pieces are expected from the Fedora system rather than fully bundled into the compat runtime
+- the RPM also installs the WebKit injected bundle into the system `webkit2gtk-4.0` path expected by the upstream app
 - the daemon SELinux policy helper is a local-machine workaround, not an upstream Fedora policy integration yet
 
 ## Repo status
