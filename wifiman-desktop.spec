@@ -65,6 +65,12 @@ install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
 cp -a staged/compat/lib64 %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
 cp -a staged/compat/libexec %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
 
+install -d %{buildroot}%{_libexecdir}/webkit2gtk-4.0
+install -m 0755 staged/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess \
+  %{buildroot}%{_libexecdir}/webkit2gtk-4.0/WebKitNetworkProcess
+install -m 0755 staged/compat/libexec/webkit2gtk-4.0/WebKitWebProcess \
+  %{buildroot}%{_libexecdir}/webkit2gtk-4.0/WebKitWebProcess
+
 install -d %{buildroot}%{_bindir}
 install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wi-fiman-desktop
 
@@ -135,6 +141,9 @@ fi
 %{_prefix}/lib/wi-fiman-desktop/compat/lib64/*
 %{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess
 %{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitWebProcess
+%dir %{_libexecdir}/webkit2gtk-4.0
+%{_libexecdir}/webkit2gtk-4.0/WebKitNetworkProcess
+%{_libexecdir}/webkit2gtk-4.0/WebKitWebProcess
 
 %changelog
 * Sat Apr 25 2026 Friday <friday@local> 1.1.2-1
