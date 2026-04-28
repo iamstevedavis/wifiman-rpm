@@ -101,22 +101,30 @@ The upstream daemon uses raw ICMP / raw socket operations for device discovery a
 
 This package now seeds a minimal valid `service.json` so the daemon does not crash on first run due to an empty config file and runs the packaged daemon through a small wrapper that redirects logs into `/var/lib/wifiman-desktop`.
 
-Generate and install the local policy module:
-
-```bash
-./scripts/install-selinux-policy.sh
-```
-
-Then enable the daemon:
+Enable the daemon once so SELinux has something to audit:
 
 ```bash
 sudo systemctl enable --now wifiman-desktop.service
 ```
 
-If the service was already failing in a restart loop, restart it after the policy install:
+If SELinux blocks the daemon, generate and install the local policy module from recent AVC denials:
 
 ```bash
-sudo systemctl restart wifiman-desktop.service
+./scripts/install-selinux-policy.sh
+```
+
+That helper:
+
+- collects recent `wifiman-desktop` AVC denials
+- builds a local policy module with `audit2allow`
+- installs it with `semodule`
+- restarts `wifiman-desktop.service`
+- prints the resulting service status
+
+If you need a wider audit window, you can override the time filter:
+
+```bash
+SINCE=boot ./scripts/install-selinux-policy.sh
 ```
 
 ## Notes
