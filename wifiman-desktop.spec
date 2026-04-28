@@ -223,6 +223,7 @@ fi
 
 %changelog
 * Mon Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
+- add bundled SELinux policy source/installer workflow for daemon networking and runtime state
 - move mutable runtime state and seeded service.json into /var/lib/wifiman-desktop
 - remove duplicate upstream desktop/icon names after share copy and package wg_report.sh
 - tolerate upstream wi-fiman/wifiman path and icon renames in staging and RPM install

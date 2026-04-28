@@ -1,0 +1,29 @@
+module wifiman-desktop 1.0;
+
+require {
+    type init_t;
+    type lib_t;
+    type var_lib_t;
+    type http_port_t;
+    type unreserved_port_t;
+    class dir { add_name remove_name search write };
+    class file { append create getattr open read rename setattr unlink write };
+    class sock_file write;
+    class tcp_socket name_connect;
+}
+
+# Current upstream daemon still writes temp/config artifacts under /usr/lib/wi-fiman-desktop
+allow init_t lib_t:dir { add_name remove_name search write };
+allow init_t lib_t:file { append create getattr open read rename setattr unlink write };
+allow init_t lib_t:sock_file write;
+
+# Allow runtime state/log writes under /var/lib/wifiman-desktop
+allow init_t var_lib_t:dir { add_name remove_name search write };
+allow init_t var_lib_t:file { append create getattr open read rename setattr unlink write };
+allow init_t var_lib_t:sock_file write;
+
+# Cloud auth / AWS credential bootstrap
+allow init_t http_port_t:tcp_socket name_connect;
+
+# Local UniFi gateway proxy and other high ports used by Teleport/console calls
+allow init_t unreserved_port_t:tcp_socket name_connect;

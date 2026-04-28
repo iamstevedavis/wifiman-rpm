@@ -108,7 +108,7 @@ Enable the daemon once so SELinux has something to audit:
 sudo systemctl enable --now wifiman-desktop.service
 ```
 
-If SELinux blocks the daemon, generate and install the local policy module from recent AVC denials:
+If SELinux blocks the daemon, install the bundled local policy module and merge in any recent AVC-based deltas:
 
 ```bash
 ./scripts/install-selinux-policy.sh
@@ -116,9 +116,9 @@ If SELinux blocks the daemon, generate and install the local policy module from 
 
 That helper:
 
-- collects recent `wifiman-desktop` AVC denials
-- builds a local policy module with `audit2allow`
-- installs it with `semodule`
+- compiles the repo's base SELinux policy source from `scripts/wifiman-desktop.te`
+- optionally merges recent `wifiman-desktop` AVC denials on top when available
+- installs the resulting module with `semodule`
 - restarts `wifiman-desktop.service`
 - prints the resulting service status
 
@@ -135,7 +135,7 @@ SINCE=boot ./scripts/install-selinux-policy.sh
 - on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
 - host EGL / GLVND pieces are expected from the Fedora system rather than fully bundled into the compat runtime
 - the RPM also installs the WebKit injected bundle into the system `webkit2gtk-4.0` path expected by the upstream app
-- the daemon SELinux policy helper is a local-machine workaround, not an upstream Fedora policy integration yet
+- the daemon SELinux policy helper now includes a repo-managed base policy plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
 
 ## Repo status
 
