@@ -10,6 +10,7 @@ require {
     class file { append create getattr open read rename setattr unlink write };
     class sock_file write;
     class tcp_socket name_connect;
+    class rawip_socket setopt;
 }
 
 # Current upstream daemon still writes temp/config artifacts under /usr/lib/wi-fiman-desktop
@@ -27,3 +28,6 @@ allow init_t http_port_t:tcp_socket name_connect;
 
 # Local UniFi gateway proxy and other high ports used by Teleport/console calls
 allow init_t unreserved_port_t:tcp_socket name_connect;
+
+# Discovery / VPN startup touches raw IP socket options
+allow init_t self:rawip_socket setopt;

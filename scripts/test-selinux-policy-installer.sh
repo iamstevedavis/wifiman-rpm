@@ -8,6 +8,8 @@ BASE_TE="$ROOT_DIR/scripts/wifiman-desktop.te"
 bash -n "$INSTALLER"
 
 grep -q '^module wifiman-desktop ' "$BASE_TE"
+grep -q 'class rawip_socket setopt;' "$BASE_TE"
+grep -q 'allow init_t self:rawip_socket setopt;' "$BASE_TE"
 grep -q 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' "$INSTALLER"
 grep -q 'AVC_MODULE_NAME=' "$INSTALLER"
 grep -q 'compile_and_install' "$INSTALLER"
