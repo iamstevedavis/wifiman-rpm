@@ -84,6 +84,33 @@ for candidate in staged/upstream/usr/share/applications/wi-fiman-desktop.desktop
 done
 [ -n "$UPSTREAM_DESKTOP" ]
 
+UPSTREAM_ICON_32=
+for candidate in staged/upstream/usr/share/icons/hicolor/32x32/apps/wi-fiman-desktop.png staged/upstream/usr/share/icons/hicolor/32x32/apps/wifiman-desktop.png; do
+  if [ -f "$candidate" ]; then
+    UPSTREAM_ICON_32="$candidate"
+    break
+  fi
+done
+[ -n "$UPSTREAM_ICON_32" ]
+
+UPSTREAM_ICON_128=
+for candidate in staged/upstream/usr/share/icons/hicolor/128x128/apps/wi-fiman-desktop.png staged/upstream/usr/share/icons/hicolor/128x128/apps/wifiman-desktop.png; do
+  if [ -f "$candidate" ]; then
+    UPSTREAM_ICON_128="$candidate"
+    break
+  fi
+done
+[ -n "$UPSTREAM_ICON_128" ]
+
+UPSTREAM_ICON_256=
+for candidate in staged/upstream/usr/share/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png staged/upstream/usr/share/icons/hicolor/256x256@2/apps/wifiman-desktop.png; do
+  if [ -f "$candidate" ]; then
+    UPSTREAM_ICON_256="$candidate"
+    break
+  fi
+done
+[ -n "$UPSTREAM_ICON_256" ]
+
 install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop
 install -m 0755 "$UPSTREAM_BIN" \
   %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
@@ -123,13 +150,13 @@ sed -i 's/^Comment=.*/Comment=Discover devices and access Teleport VPNs/' \
   %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
 
 install -d %{buildroot}%{_datadir}/icons/hicolor/32x32/apps
-install -m 0644 staged/upstream/usr/share/icons/hicolor/32x32/apps/wi-fiman-desktop.png \
+install -m 0644 "$UPSTREAM_ICON_32" \
   %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/wi-fiman-desktop.png
 install -d %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
-install -m 0644 staged/upstream/usr/share/icons/hicolor/128x128/apps/wi-fiman-desktop.png \
+install -m 0644 "$UPSTREAM_ICON_128" \
   %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/wi-fiman-desktop.png
 install -d %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps
-install -m 0644 staged/upstream/usr/share/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png \
+install -m 0644 "$UPSTREAM_ICON_256" \
   %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png
 
 install -d %{buildroot}%{_datadir}/licenses/%{name}
@@ -191,7 +218,7 @@ fi
 
 %changelog
 * Mon Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
-- tolerate upstream wi-fiman/wifiman path renames in staging and RPM install
+- tolerate upstream wi-fiman/wifiman path and icon renames in staging and RPM install
 - rename staging script to versionless name
 - suppress upstream in-app updater prompt in RPM packaging
 - retarget packaging flow to upstream 1.2.10
