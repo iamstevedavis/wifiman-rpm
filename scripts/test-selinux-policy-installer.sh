@@ -10,6 +10,7 @@ bash -n "$INSTALLER"
 grep -q '^module wifiman-desktop ' "$BASE_TE"
 grep -q 'class rawip_socket setopt;' "$BASE_TE"
 grep -q 'allow init_t self:rawip_socket setopt;' "$BASE_TE"
+grep -q 'WIFIMAN_ASSUME_ROOT_FOR_TESTS' "$INSTALLER"
 grep -q 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' "$INSTALLER"
 grep -q 'AVC_MODULE_NAME=' "$INSTALLER"
 grep -q 'compile_and_install' "$INSTALLER"
@@ -24,6 +25,7 @@ text = Path(sys.argv[1]).read_text()
 assert '>> "$TMP_DIR/' not in text, 'installer should not append AVC policy into base TE file'
 assert 'cp "$BASE_TE" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
 assert 'compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
+assert 'WIFIMAN_ASSUME_ROOT_FOR_TESTS' in text
 assert 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' in text
 assert 'audit2allow -M "$AVC_MODULE_NAME"' in text
 assert 'cd "$TMP_DIR"' in text

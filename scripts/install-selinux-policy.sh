@@ -8,7 +8,7 @@ SINCE=${SINCE:-recent}
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
 
-if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+if [[ "${WIFIMAN_ASSUME_ROOT_FOR_TESTS:-0}" != "1" && ${EUID:-$(id -u)} -ne 0 ]]; then
   exec sudo "$0" "$@"
 fi
 
