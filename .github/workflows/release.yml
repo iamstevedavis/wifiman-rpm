@@ -36,6 +36,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y rpm desktop-file-utils
 
+      - name: Validate SELinux policy installer
+        run: ./scripts/test-selinux-policy-installer.sh
+
       - name: Build RPM
         run: ./scripts/build-rpm-from-stage.sh
 

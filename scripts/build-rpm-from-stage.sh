@@ -13,6 +13,8 @@ RESTAGE=${RESTAGE:-1}
 
 command -v docker >/dev/null
 
+"$ROOT_DIR/scripts/test-selinux-policy-installer.sh"
+
 mkdir -p "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
 if [[ "$RESTAGE" == "1" ]]; then
