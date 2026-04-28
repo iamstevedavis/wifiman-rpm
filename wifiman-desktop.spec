@@ -164,6 +164,8 @@ fi
 
 %changelog
 * Sun Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
+- rename staging script to versionless name
+- suppress upstream in-app updater prompt in RPM packaging
 - retarget packaging flow to upstream 1.2.10
 
 * Sat Apr 25 2026 Friday <friday@local> 1.1.2-1

@@ -17,7 +17,7 @@ mkdir -p "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
 if [[ "$RESTAGE" == "1" ]]; then
   rm -rf "$STAGE_DIR"
-  "$ROOT_DIR/scripts/stage-wifiman-1.1.2-fedora-newer.sh" "$STAGE_DIR"
+  "$ROOT_DIR/scripts/stage-wifiman-fedora-newer.sh" "$STAGE_DIR"
 fi
 
 required_paths=(

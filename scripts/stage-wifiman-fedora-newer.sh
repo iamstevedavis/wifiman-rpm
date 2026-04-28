@@ -29,6 +29,21 @@ mkdir -p "$STAGE_DIR/upstream" "$STAGE_DIR/bin" "$STAGE_DIR/compat/lib64"
 cp -R "$TMP_DIR/usr" "$STAGE_DIR/upstream/"
 install -m 0755 "$ROOT_DIR/scripts/wi-fiman-desktop-wrapper.sh" "$STAGE_DIR/bin/wi-fiman-desktop"
 
+python3 - <<'PY' "$STAGE_DIR/upstream/usr/lib/wi-fiman-desktop/.env"
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+replacements = {
+    "UPDATER_DELAY=120000": "UPDATER_DELAY=31536000000",
+    "UPDATER_INTERVAL=43200000": "UPDATER_INTERVAL=31536000000",
+}
+for old, new in replacements.items():
+    if old in text:
+        text = text.replace(old, new)
+path.write_text(text)
+PY
+
 EXTRACT_ROOT=$("$ROOT_DIR/scripts/fetch-fedora40-compat-libs.sh")
 EXTRACT_LIB64="$EXTRACT_ROOT/usr/lib64"
 
