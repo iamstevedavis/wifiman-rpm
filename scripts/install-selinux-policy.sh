@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman_desktop_base}
+BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}
 AVC_MODULE_NAME=${AVC_MODULE_NAME:-wifiman_desktop_local}
 SINCE=${SINCE:-recent}
 TMP_DIR=$(mktemp -d)

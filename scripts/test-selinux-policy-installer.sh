@@ -8,7 +8,7 @@ BASE_TE="$ROOT_DIR/scripts/wifiman-desktop.te"
 bash -n "$INSTALLER"
 
 grep -q '^module wifiman-desktop ' "$BASE_TE"
-grep -q 'BASE_MODULE_NAME=' "$INSTALLER"
+grep -q 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' "$INSTALLER"
 grep -q 'AVC_MODULE_NAME=' "$INSTALLER"
 grep -q 'compile_and_install' "$INSTALLER"
 grep -q 'audit2allow -M "\$AVC_MODULE_NAME"' "$INSTALLER"
@@ -21,6 +21,7 @@ text = Path(sys.argv[1]).read_text()
 assert '>> "$TMP_DIR/' not in text, 'installer should not append AVC policy into base TE file'
 assert 'cp "$BASE_TE" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
 assert 'compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
+assert 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' in text
 assert 'audit2allow -M "$AVC_MODULE_NAME"' in text
 assert 'mv "$AVC_MODULE_NAME.te" "$TMP_DIR/$AVC_MODULE_NAME.te"' in text
 assert 'semodule -X 300 -i "$TMP_DIR/$AVC_MODULE_NAME.pp"' in text
