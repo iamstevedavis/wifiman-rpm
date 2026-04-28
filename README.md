@@ -2,7 +2,7 @@
 
 This repo packages upstream **WiFiman Desktop 1.2.10** for newer Fedora releases.
 
-The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment. The RPM build also suppresses the built-in upstream updater prompt by stretching the updater timing values in the packaged `.env`.
+The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment. When the upstream payload still includes its `.env`, the RPM build also suppresses the built-in updater prompt by stretching the packaged updater timing values.
 
 ## What this repo does
 

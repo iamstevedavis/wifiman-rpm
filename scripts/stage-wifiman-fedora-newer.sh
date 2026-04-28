@@ -29,7 +29,9 @@ mkdir -p "$STAGE_DIR/upstream" "$STAGE_DIR/bin" "$STAGE_DIR/compat/lib64"
 cp -R "$TMP_DIR/usr" "$STAGE_DIR/upstream/"
 install -m 0755 "$ROOT_DIR/scripts/wi-fiman-desktop-wrapper.sh" "$STAGE_DIR/bin/wi-fiman-desktop"
 
-python3 - <<'PY' "$STAGE_DIR/upstream/usr/lib/wi-fiman-desktop/.env"
+UPSTREAM_ENV="$STAGE_DIR/upstream/usr/lib/wi-fiman-desktop/.env"
+if [[ -f "$UPSTREAM_ENV" ]]; then
+  python3 - <<'PY' "$UPSTREAM_ENV"
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
@@ -43,6 +45,9 @@ for old, new in replacements.items():
         text = text.replace(old, new)
 path.write_text(text)
 PY
+else
+  echo "warning: upstream .env not found at $UPSTREAM_ENV; skipping updater suppression patch" >&2
+fi
 
 EXTRACT_ROOT=$("$ROOT_DIR/scripts/fetch-fedora40-compat-libs.sh")
 EXTRACT_LIB64="$EXTRACT_ROOT/usr/lib64"
