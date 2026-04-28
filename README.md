@@ -116,9 +116,9 @@ If SELinux blocks the daemon, install the bundled local policy module and merge 
 
 That helper:
 
-- compiles the repo's base SELinux policy source from `scripts/wifiman-desktop.te`
-- optionally merges recent `wifiman-desktop` AVC denials on top when available
-- installs the resulting module with `semodule`
+- compiles and installs the repo's base SELinux policy source from `scripts/wifiman-desktop.te`
+- optionally generates a second AVC-derived local module when recent `wifiman-desktop` denials exist
+- installs those modules with `semodule`
 - restarts `wifiman-desktop.service`
 - prints the resulting service status
 
