@@ -9,7 +9,7 @@ on:
       version:
         description: 'Upstream WiFiman Desktop version to package'
         required: false
-        default: '1.1.2'
+        default: '1.2.10'
       release:
         description: 'RPM release number'
         required: false
@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: write
     env:
-      VERSION: ${{ inputs.version || '1.1.2' }}
+      VERSION: ${{ inputs.version || '1.2.10' }}
       RELEASE: ${{ inputs.release || '1' }}
     steps:
       - name: Checkout

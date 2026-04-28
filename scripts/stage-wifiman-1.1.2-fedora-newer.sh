@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 STAGE_DIR=${1:-"$ROOT_DIR/out/wifiman-desktop-fedora-newer"}
-UPSTREAM_VERSION=${UPSTREAM_VERSION:-1.1.2}
+UPSTREAM_VERSION=${UPSTREAM_VERSION:-1.2.10}
 UPSTREAM_URL=${UPSTREAM_URL:-"https://desktop.ea.wifiman.com/wifiman-desktop-${UPSTREAM_VERSION}-amd64.deb"}
 ARCH=${ARCH:-x86_64}
 TMP_DIR=$(mktemp -d)

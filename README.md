@@ -1,12 +1,12 @@
 # WiFiman Desktop RPM for newer Fedora
 
-This repo packages upstream **WiFiman Desktop 1.1.2** for newer Fedora releases.
+This repo packages upstream **WiFiman Desktop 1.2.10** for newer Fedora releases.
 
 The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment.
 
 ## What this repo does
 
-- downloads upstream `wifiman-desktop-1.1.2-amd64.deb`
+- downloads upstream `wifiman-desktop-1.2.10-amd64.deb`
 - extracts the app payload
 - pulls Fedora 40 compatibility libraries for the older WebKitGTK 4.0 stack
 - stages a runnable app tree with a wrapper
@@ -55,6 +55,7 @@ Artifacts are written to:
 
 ```bash
 ./scripts/stage-wifiman-1.1.2-fedora-newer.sh
+# defaults to upstream 1.2.10 unless UPSTREAM_VERSION is overridden
 ```
 
 ### 2) Verify library resolution locally
@@ -86,7 +87,7 @@ find ./.rpmbuild/RPMS ./.rpmbuild/SRPMS -type f | sort
 Adjust the exact filename if the release changes:
 
 ```bash
-sudo dnf install ./.rpmbuild/RPMS/x86_64/wifiman-desktop-1.1.2-1*.rpm
+sudo dnf install ./.rpmbuild/RPMS/x86_64/wifiman-desktop-1.2.10-1*.rpm
 ```
 
 Launch the app:
