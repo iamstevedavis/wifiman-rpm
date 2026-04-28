@@ -29,7 +29,23 @@ mkdir -p "$STAGE_DIR/upstream" "$STAGE_DIR/bin" "$STAGE_DIR/compat/lib64"
 cp -R "$TMP_DIR/usr" "$STAGE_DIR/upstream/"
 install -m 0755 "$ROOT_DIR/scripts/wi-fiman-desktop-wrapper.sh" "$STAGE_DIR/bin/wi-fiman-desktop"
 
-UPSTREAM_ENV="$STAGE_DIR/upstream/usr/lib/wi-fiman-desktop/.env"
+UPSTREAM_APP_DIR=
+for candidate in \
+  "$STAGE_DIR/upstream/usr/lib/wi-fiman-desktop" \
+  "$STAGE_DIR/upstream/usr/lib/wifiman-desktop"
+do
+  if [[ -d "$candidate" ]]; then
+    UPSTREAM_APP_DIR="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$UPSTREAM_APP_DIR" ]]; then
+  echo "could not find upstream app dir under $STAGE_DIR/upstream/usr/lib" >&2
+  exit 1
+fi
+
+UPSTREAM_ENV="$UPSTREAM_APP_DIR/.env"
 if [[ -f "$UPSTREAM_ENV" ]]; then
   python3 - <<'PY' "$UPSTREAM_ENV"
 from pathlib import Path

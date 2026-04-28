@@ -57,10 +57,37 @@ cd staged
 %install
 rm -rf %{buildroot}
 
+UPSTREAM_BIN=
+for candidate in staged/upstream/usr/bin/wi-fiman-desktop staged/upstream/usr/bin/wifiman-desktop; do
+  if [ -f "$candidate" ]; then
+    UPSTREAM_BIN="$candidate"
+    break
+  fi
+done
+[ -n "$UPSTREAM_BIN" ]
+
+UPSTREAM_LIBDIR=
+for candidate in staged/upstream/usr/lib/wi-fiman-desktop staged/upstream/usr/lib/wifiman-desktop; do
+  if [ -d "$candidate" ]; then
+    UPSTREAM_LIBDIR="$candidate"
+    break
+  fi
+done
+[ -n "$UPSTREAM_LIBDIR" ]
+
+UPSTREAM_DESKTOP=
+for candidate in staged/upstream/usr/share/applications/wi-fiman-desktop.desktop staged/upstream/usr/share/applications/wifiman-desktop.desktop; do
+  if [ -f "$candidate" ]; then
+    UPSTREAM_DESKTOP="$candidate"
+    break
+  fi
+done
+[ -n "$UPSTREAM_DESKTOP" ]
+
 install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop
-install -m 0755 staged/upstream/usr/bin/wi-fiman-desktop \
+install -m 0755 "$UPSTREAM_BIN" \
   %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
-cp -a staged/upstream/usr/lib/wi-fiman-desktop/. %{buildroot}%{_prefix}/lib/wi-fiman-desktop/
+cp -a "$UPSTREAM_LIBDIR"/. %{buildroot}%{_prefix}/lib/wi-fiman-desktop/
 install -m 0644 %{SOURCE3} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/service.json
 cp -a staged/upstream/usr/share %{buildroot}%{_prefix}/
 
@@ -84,13 +111,13 @@ install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wi-fiman-desktop
 install -m 0755 %{SOURCE4} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
 
 install -d %{buildroot}%{_unitdir}
-install -m 0644 staged/upstream/usr/lib/wi-fiman-desktop/wifiman-desktop.service \
+install -m 0644 "$UPSTREAM_LIBDIR"/wifiman-desktop.service \
   %{buildroot}%{_unitdir}/%{name}.service
 sed -i 's#^ExecStart=.*#ExecStart=/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper#' \
   %{buildroot}%{_unitdir}/%{name}.service
 
 install -d %{buildroot}%{_datadir}/applications
-install -m 0644 staged/upstream/usr/share/applications/wi-fiman-desktop.desktop \
+install -m 0644 "$UPSTREAM_DESKTOP" \
   %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
 sed -i 's/^Comment=.*/Comment=Discover devices and access Teleport VPNs/' \
   %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
@@ -163,7 +190,8 @@ fi
 %{_libdir}/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so
 
 %changelog
-* Sun Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
+* Mon Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
+- tolerate upstream wi-fiman/wifiman path renames in staging and RPM install
 - rename staging script to versionless name
 - suppress upstream in-app updater prompt in RPM packaging
 - retarget packaging flow to upstream 1.2.10
