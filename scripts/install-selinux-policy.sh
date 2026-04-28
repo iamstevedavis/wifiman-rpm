@@ -37,13 +37,11 @@ compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"
 
 if command -v ausearch >/dev/null && command -v audit2allow >/dev/null; then
   if ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" >/dev/null 2>&1; then
-    if ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" --raw | audit2allow -M "$AVC_MODULE_NAME" -p /var/lib/selinux/targeted/active/policy.* >/dev/null 2>&1; then
-      :
-    fi
-    if [[ -f "$AVC_MODULE_NAME.te" ]]; then
-      mv "$AVC_MODULE_NAME.te" "$TMP_DIR/$AVC_MODULE_NAME.te"
-      mv "$AVC_MODULE_NAME.mod" "$TMP_DIR/$AVC_MODULE_NAME.mod"
-      mv "$AVC_MODULE_NAME.pp" "$TMP_DIR/$AVC_MODULE_NAME.pp"
+    (
+      cd "$TMP_DIR"
+      ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" --raw | audit2allow -M "$AVC_MODULE_NAME" -p /var/lib/selinux/targeted/active/policy.* >/dev/null 2>&1 || true
+    )
+    if [[ -f "$TMP_DIR/$AVC_MODULE_NAME.te" && -f "$TMP_DIR/$AVC_MODULE_NAME.pp" ]]; then
       semodule -X 300 -i "$TMP_DIR/$AVC_MODULE_NAME.pp"
     else
       echo "No additional AVC-derived SELinux rules were generated (since=$SINCE)."

@@ -14,7 +14,8 @@ grep -q 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' "$INSTALLER"
 grep -q 'AVC_MODULE_NAME=' "$INSTALLER"
 grep -q 'compile_and_install' "$INSTALLER"
 grep -q 'audit2allow -M "\$AVC_MODULE_NAME"' "$INSTALLER"
-grep -q 'if \[\[ -f "\$AVC_MODULE_NAME.te" \]\]' "$INSTALLER"
+grep -q 'cd "\$TMP_DIR"' "$INSTALLER"
+grep -q 'if \[\[ -f "\$TMP_DIR/\$AVC_MODULE_NAME.te" && -f "\$TMP_DIR/\$AVC_MODULE_NAME.pp" \]\]' "$INSTALLER"
 
 python3 - <<'PY' "$INSTALLER"
 from pathlib import Path
@@ -25,7 +26,8 @@ assert 'cp "$BASE_TE" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
 assert 'compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
 assert 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' in text
 assert 'audit2allow -M "$AVC_MODULE_NAME"' in text
-assert 'mv "$AVC_MODULE_NAME.te" "$TMP_DIR/$AVC_MODULE_NAME.te"' in text
+assert 'cd "$TMP_DIR"' in text
+assert 'if [[ -f "$TMP_DIR/$AVC_MODULE_NAME.te" && -f "$TMP_DIR/$AVC_MODULE_NAME.pp" ]]' in text
 assert 'semodule -X 300 -i "$TMP_DIR/$AVC_MODULE_NAME.pp"' in text
 print('selinux installer structure OK')
 PY
