@@ -115,7 +115,6 @@ install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop
 install -m 0755 "$UPSTREAM_BIN" \
   %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
 cp -a "$UPSTREAM_LIBDIR"/. %{buildroot}%{_prefix}/lib/wi-fiman-desktop/
-install -m 0644 %{SOURCE3} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/service.json
 cp -a staged/upstream/usr/share %{buildroot}%{_prefix}/
 rm -f %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 rm -f %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/wifiman-desktop.png
@@ -123,6 +122,7 @@ rm -f %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/wifiman-desktop.png
 rm -f %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wifiman-desktop.png
 
 install -d %{buildroot}%{_localstatedir}/lib/%{name}
+install -m 0644 %{SOURCE3} %{buildroot}%{_localstatedir}/lib/%{name}/service.json
 
 install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
 cp -a staged/compat/lib64 %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
@@ -208,8 +208,8 @@ fi
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.service
 %{_prefix}/lib/wi-fiman-desktop/wireguard-go
-%{_prefix}/lib/wi-fiman-desktop/service.json
 %dir %{_localstatedir}/lib/%{name}
+%config(noreplace) %{_localstatedir}/lib/%{name}/service.json
 %dir %{_prefix}/lib/wi-fiman-desktop/compat
 %{_prefix}/lib/wi-fiman-desktop/compat/lib64/*
 %{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess
@@ -223,6 +223,7 @@ fi
 
 %changelog
 * Mon Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
+- move mutable runtime state and seeded service.json into /var/lib/wifiman-desktop
 - remove duplicate upstream desktop/icon names after share copy and package wg_report.sh
 - tolerate upstream wi-fiman/wifiman path and icon renames in staging and RPM install
 - rename staging script to versionless name
