@@ -2,7 +2,15 @@
 set -euo pipefail
 
 APP_ROOT=${APP_ROOT:-/usr/lib/wi-fiman-desktop}
-STATE_ROOT=${STATE_ROOT:-/var/lib/wifiman-desktop}
+if [[ -z ${STATE_ROOT:-} ]]; then
+  if [[ -n ${XDG_STATE_HOME:-} ]]; then
+    STATE_ROOT="$XDG_STATE_HOME/wifiman-desktop"
+  elif [[ -n ${HOME:-} ]]; then
+    STATE_ROOT="$HOME/.local/state/wifiman-desktop"
+  else
+    STATE_ROOT=/tmp/wifiman-desktop
+  fi
+fi
 RUNTIME_ROOT="$STATE_ROOT/app-root"
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
