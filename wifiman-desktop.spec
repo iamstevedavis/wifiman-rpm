@@ -124,6 +124,7 @@ rm -f %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wifiman-desktop.png
 install -d %{buildroot}%{_localstatedir}/lib/%{name}
 install -m 0644 %{SOURCE3} %{buildroot}%{_localstatedir}/lib/%{name}/service.json
 touch %{buildroot}%{_localstatedir}/lib/%{name}/wifiman-desktop.log
+rm -f %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 ln -sfn %{_localstatedir}/lib/%{name}/wifiman-desktop.log %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 
 install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
@@ -213,8 +214,8 @@ fi
 %dir %{_localstatedir}/lib/%{name}
 %config(noreplace) %{_localstatedir}/lib/%{name}/service.json
 %ghost %config(noreplace) %{_localstatedir}/lib/%{name}/wifiman-desktop.log
+%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 %dir %{_prefix}/lib/wi-fiman-desktop/compat
-%ghost %{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 %{_prefix}/lib/wi-fiman-desktop/compat/lib64/*
 %{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess
 %{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitWebProcess
