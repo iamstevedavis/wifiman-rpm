@@ -12,6 +12,18 @@ if [[ -z ${STATE_ROOT:-} ]]; then
   fi
 fi
 RUNTIME_ROOT="$STATE_ROOT/app-root"
+RUNTIME_ITEMS=(
+  .env
+  .env.development
+  .env.staging
+  compat
+  wg
+  wg-quick
+  wg_report.sh
+  wi-fiman-desktop-bin
+  wifiman-desktopd
+  wireguard-go
+)
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
@@ -28,12 +40,19 @@ if [[ ! -s "$STATE_ROOT/service.json" ]]; then
 fi
 
 shopt -s dotglob nullglob
-for src in "$APP_ROOT"/*; do
-  name=${src##*/}
-  if [[ "$name" == "service.json" || "$name" == "service.json.tmp" ]]; then
+for existing in "$RUNTIME_ROOT"/*; do
+  name=${existing##*/}
+  if [[ "$name" == "service.json" ]]; then
     continue
   fi
-  ln -sfn "$src" "$RUNTIME_ROOT/$name"
+  rm -rf "$existing"
+done
+
+for name in "${RUNTIME_ITEMS[@]}"; do
+  src="$APP_ROOT/$name"
+  if [[ -e "$src" ]]; then
+    ln -sfn "$src" "$RUNTIME_ROOT/$name"
+  fi
 done
 
 if [[ ! -e "$RUNTIME_ROOT/service.json" ]] || ! cmp -s "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"; then
