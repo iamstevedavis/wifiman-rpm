@@ -15,6 +15,14 @@ RUNTIME_ROOT="$STATE_ROOT/app-root"
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
+if [[ -L "$STATE_ROOT/service.json" ]]; then
+  target=$(readlink -f "$STATE_ROOT/service.json" || true)
+  runtime_service=$(readlink -f "$RUNTIME_ROOT/service.json" 2>/dev/null || true)
+  if [[ -n "$target" && "$target" == "$runtime_service" ]]; then
+    rm -f "$STATE_ROOT/service.json"
+  fi
+fi
+
 if [[ ! -s "$STATE_ROOT/service.json" ]]; then
   printf '{}\n' > "$STATE_ROOT/service.json"
 fi
@@ -28,7 +36,9 @@ for src in "$APP_ROOT"/*; do
   ln -sfn "$src" "$RUNTIME_ROOT/$name"
 done
 
-cp -f "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"
+if [[ ! -e "$RUNTIME_ROOT/service.json" ]] || ! cmp -s "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"; then
+  cp -f "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"
+fi
 ln -sfn "$RUNTIME_ROOT/service.json" "$STATE_ROOT/service.json"
 rm -f "$STATE_ROOT/service.json.tmp"
 

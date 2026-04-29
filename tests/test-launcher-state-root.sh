@@ -24,6 +24,7 @@ printf 'package-owned\n' > "$APP_ROOT/package.txt"
 printf '{"original":true}\n' > "$APP_ROOT/service.json"
 
 HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh"
+HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh"
 
 STATE_ROOT="$HOME_DIR/.local/state/wifiman-desktop"
 test -d "$STATE_ROOT/app-root"
@@ -37,6 +38,7 @@ grep -qx "$STATE_ROOT/app-root/wi-fiman-desktop-bin" "$HOME_DIR/argv0.txt"
 grep -qx "$STATE_ROOT" "$HOME_DIR/log_dir.txt"
 grep -qx "$STATE_ROOT/wifiman-desktop.log" "$HOME_DIR/log_path.txt"
 grep -qx 'ui-seed' "$STATE_ROOT/service.json"
+grep -qx 'ui-seed' "$STATE_ROOT/app-root/service.json"
 grep -qx '{"original":true}' "$APP_ROOT/service.json"
 
 echo "launcher state root test passed"
