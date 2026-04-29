@@ -13,6 +13,7 @@ RESTAGE=${RESTAGE:-1}
 
 command -v docker >/dev/null
 
+# Always run the local regression suite before staging/building a new RPM.
 "$ROOT_DIR/tests/run-all.sh"
 
 mkdir -p "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}

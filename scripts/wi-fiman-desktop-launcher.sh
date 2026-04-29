@@ -2,6 +2,8 @@
 set -euo pipefail
 
 APP_ROOT=${APP_ROOT:-/usr/lib/wi-fiman-desktop}
+
+# Desktop launches must use per-user writable state rather than /var/lib.
 if [[ -z ${STATE_ROOT:-} ]]; then
   if [[ -n ${XDG_STATE_HOME:-} ]]; then
     STATE_ROOT="$XDG_STATE_HOME/wifiman-desktop"
@@ -12,6 +14,9 @@ if [[ -z ${STATE_ROOT:-} ]]; then
   fi
 fi
 RUNTIME_ROOT="$STATE_ROOT/app-root"
+
+# Keep the runtime mirror intentionally selective. Mirroring the whole packaged
+# tree previously pulled in junk artifacts and caused UI regressions.
 RUNTIME_ITEMS=(
   .env
   .env.development
@@ -27,6 +32,8 @@ RUNTIME_ITEMS=(
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
+# If the state file already points at the runtime copy from a prior run, break
+# that link before reseeding so repeated launches stay idempotent.
 if [[ -L "$STATE_ROOT/service.json" ]]; then
   target=$(readlink -f "$STATE_ROOT/service.json" || true)
   runtime_service=$(readlink -f "$RUNTIME_ROOT/service.json" 2>/dev/null || true)
@@ -40,6 +47,8 @@ if [[ ! -s "$STATE_ROOT/service.json" ]]; then
 fi
 
 shopt -s dotglob nullglob
+# Clean stale runtime entries on each launch so old packaged artifacts do not
+# linger after wrapper changes.
 for existing in "$RUNTIME_ROOT"/*; do
   name=${existing##*/}
   if [[ "$name" == "service.json" ]]; then
@@ -55,6 +64,8 @@ for name in "${RUNTIME_ITEMS[@]}"; do
   fi
 done
 
+# Preserve service.json across runs, but avoid copying when source and target
+# already match.
 if [[ ! -e "$RUNTIME_ROOT/service.json" ]] || ! cmp -s "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"; then
   cp -f "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"
 fi

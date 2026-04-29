@@ -64,7 +64,7 @@ Artifacts are written to:
 ./scripts/verify-fedora-newer-stage.sh
 ```
 
-### Run the local test suite
+### 2.5) Run the local test suite
 
 ```bash
 ./tests/run-all.sh
@@ -150,3 +150,11 @@ Repo-local guidance for AI agents and automation lives in `AGENTS.md`.
 ## Repo status
 
 This repo is focused on the local newer-Fedora packaging path and the direct build/test/install flow for Fedora.
+
+## Repo layout
+
+- `scripts/` — build, staging, wrapper, and SELinux helper scripts
+- `tests/` — local regression tests and the `run-all.sh` test runner
+- `wifiman-desktop.spec` — RPM spec file
+- `FEDORA_NEWER_NOTES.md` — extra packaging notes and context
+- `AGENTS.md` — repo-specific guidance for AI agents and automation

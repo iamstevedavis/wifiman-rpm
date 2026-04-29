@@ -4,6 +4,9 @@ set -euo pipefail
 APP_ROOT=${APP_ROOT:-/usr/lib/wi-fiman-desktop}
 STATE_ROOT=${STATE_ROOT:-/var/lib/wifiman-desktop}
 RUNTIME_ROOT="$STATE_ROOT/app-root"
+
+# Keep the daemon runtime mirror intentionally selective. Mirroring the whole
+# packaged tree previously pulled in junk artifacts and caused regressions.
 RUNTIME_ITEMS=(
   .env
   .env.development
@@ -18,6 +21,8 @@ RUNTIME_ITEMS=(
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
+# If the state file already points at the runtime copy from a prior run, break
+# that link before reseeding so repeated service starts stay idempotent.
 if [[ -L "$STATE_ROOT/service.json" ]]; then
   target=$(readlink -f "$STATE_ROOT/service.json" || true)
   runtime_service=$(readlink -f "$RUNTIME_ROOT/service.json" 2>/dev/null || true)
@@ -31,6 +36,8 @@ if [[ ! -s "$STATE_ROOT/service.json" ]]; then
 fi
 
 shopt -s dotglob nullglob
+# Clean stale runtime entries on each start so old packaged artifacts do not
+# linger after wrapper changes.
 for existing in "$RUNTIME_ROOT"/*; do
   name=${existing##*/}
   if [[ "$name" == "service.json" ]]; then
@@ -46,6 +53,8 @@ for name in "${RUNTIME_ITEMS[@]}"; do
   fi
 done
 
+# Preserve service.json across runs, but avoid copying when source and target
+# already match.
 if [[ ! -e "$RUNTIME_ROOT/service.json" ]] || ! cmp -s "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"; then
   cp -f "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"
 fi
