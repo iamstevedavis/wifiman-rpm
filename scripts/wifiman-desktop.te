@@ -8,7 +8,7 @@ require {
     type unreserved_port_t;
     class dir { add_name remove_name search write };
     class file { append create getattr open read rename setattr unlink write };
-    class netlink_generic_socket create;
+    class netlink_generic_socket { bind create };
     class sock_file write;
     class tcp_socket name_connect;
     type node_t;
@@ -36,4 +36,4 @@ allow init_t self:rawip_socket { bind getattr setopt };
 allow init_t node_t:rawip_socket node_bind;
 
 # WireGuard tooling uses generic netlink sockets during interface setup
-allow init_t self:netlink_generic_socket create;
+allow init_t self:netlink_generic_socket { bind create };
