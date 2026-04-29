@@ -12,6 +12,7 @@ tests=(
   "$TEST_DIR/test-runtime-wrapper.sh"
   "$TEST_DIR/test-selinux-policy-installer.sh"
   "$TEST_DIR/test-selinux-policy-installer-mock.sh"
+  "$TEST_DIR/test-stage-env-patch.sh"
 )
 
 for test_script in "${tests[@]}"; do
