@@ -11,7 +11,7 @@ require {
     class sock_file write;
     class tcp_socket name_connect;
     type node_t;
-    class rawip_socket { bind node_bind setopt };
+    class rawip_socket { bind getattr node_bind setopt };
 }
 
 # Current upstream daemon still writes temp/config artifacts under /usr/lib/wi-fiman-desktop
@@ -31,5 +31,5 @@ allow init_t http_port_t:tcp_socket name_connect;
 allow init_t unreserved_port_t:tcp_socket name_connect;
 
 # Discovery / VPN startup touches raw IP socket options, bind paths, and node binds
-allow init_t self:rawip_socket { bind setopt };
+allow init_t self:rawip_socket { bind getattr setopt };
 allow init_t node_t:rawip_socket node_bind;
