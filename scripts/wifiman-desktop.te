@@ -1,7 +1,9 @@
 module wifiman-desktop 1.0;
 
 require {
+    type ifconfig_t;
     type init_t;
+    type init_var_lib_t;
     type lib_t;
     type var_lib_t;
     type http_port_t;
@@ -24,6 +26,7 @@ allow init_t lib_t:sock_file write;
 allow init_t var_lib_t:dir { add_name remove_name search write };
 allow init_t var_lib_t:file { append create getattr open read rename setattr unlink write };
 allow init_t var_lib_t:sock_file write;
+allow ifconfig_t init_var_lib_t:file append;
 
 # Cloud auth / AWS credential bootstrap
 allow init_t http_port_t:tcp_socket name_connect;
