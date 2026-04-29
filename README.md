@@ -64,6 +64,12 @@ Artifacts are written to:
 ./scripts/verify-fedora-newer-stage.sh
 ```
 
+### Run the local test suite
+
+```bash
+./tests/run-all.sh
+```
+
 ### 3) Test against a Fedora container
 
 ```bash
@@ -100,7 +106,7 @@ wi-fiman-desktop
 
 The upstream daemon uses raw ICMP / raw socket operations for device discovery and related networking behavior. On Fedora with SELinux enforcing, that can trigger denials until a local policy module is installed.
 
-This package now seeds a minimal valid `service.json` so the daemon does not crash on first run due to an empty config file and runs the packaged daemon through a small wrapper that redirects logs into `/var/lib/wifiman-desktop`.
+This package now seeds a minimal valid `service.json` so the daemon does not crash on first run due to an empty config file, redirects logs into `/var/lib/wifiman-desktop`, and runs from a writable runtime mirror so upstream writes to `service.json(.tmp)` land under `/var/lib/wifiman-desktop` instead of the packaged `/usr/lib/wi-fiman-desktop` tree.
 
 Enable the daemon once so SELinux has something to audit:
 

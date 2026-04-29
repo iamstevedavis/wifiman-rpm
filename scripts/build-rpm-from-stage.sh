@@ -13,8 +13,7 @@ RESTAGE=${RESTAGE:-1}
 
 command -v docker >/dev/null
 
-"$ROOT_DIR/scripts/test-selinux-policy-installer.sh"
-"$ROOT_DIR/scripts/test-selinux-policy-installer-mock.sh"
+"$ROOT_DIR/tests/run-all.sh"
 
 mkdir -p "$TOPDIR"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 
