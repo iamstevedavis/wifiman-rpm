@@ -9,7 +9,7 @@ require {
     type http_port_t;
     type unreserved_port_t;
     class dir { add_name remove_name search write };
-    class file { append create getattr open read rename setattr unlink write };
+    class file { append create getattr ioctl open read rename setattr unlink write };
     class netlink_generic_socket { bind create getattr setopt };
     class sock_file write;
     class tcp_socket name_connect;
@@ -26,7 +26,7 @@ allow init_t lib_t:sock_file write;
 allow init_t var_lib_t:dir { add_name remove_name search write };
 allow init_t var_lib_t:file { append create getattr open read rename setattr unlink write };
 allow init_t var_lib_t:sock_file write;
-allow ifconfig_t init_var_lib_t:file append;
+allow ifconfig_t init_var_lib_t:file { append ioctl };
 
 # Cloud auth / AWS credential bootstrap
 allow init_t http_port_t:tcp_socket name_connect;
