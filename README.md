@@ -143,6 +143,10 @@ SINCE=boot ./scripts/install-selinux-policy.sh
 - the RPM also installs the WebKit injected bundle into the system `webkit2gtk-4.0` path expected by the upstream app
 - the daemon SELinux policy helper now includes a repo-managed base policy plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
 
+## Agent / automation notes
+
+Repo-local guidance for AI agents and automation lives in `AGENTS.md`.
+
 ## Repo status
 
 This repo is focused on the local newer-Fedora packaging path and the direct build/test/install flow for Fedora.

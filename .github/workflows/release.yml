@@ -38,8 +38,8 @@ jobs:
 
       - name: Validate SELinux policy installer
         run: |
-          ./scripts/test-selinux-policy-installer.sh
-          ./scripts/test-selinux-policy-installer-mock.sh
+          ./tests/test-selinux-policy-installer.sh
+          ./tests/test-selinux-policy-installer-mock.sh
 
       - name: Build RPM
         run: ./scripts/build-rpm-from-stage.sh
