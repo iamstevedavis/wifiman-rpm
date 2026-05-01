@@ -26,9 +26,9 @@ ln -sfn /tmp/nowhere "$STATE_ROOT/app-root/wifiman-desktop.service"
 
 APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktopd-wrapper.sh"
 
-test -L "$STATE_ROOT/app-root/wifiman-desktopd"
-test -L "$STATE_ROOT/app-root/compat"
-test -L "$STATE_ROOT/app-root/wg"
+test -f "$STATE_ROOT/app-root/wifiman-desktopd"
+test -d "$STATE_ROOT/app-root/compat"
+test -f "$STATE_ROOT/app-root/wg"
 test ! -e "$STATE_ROOT/app-root/old-file.txt"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.log"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.service"

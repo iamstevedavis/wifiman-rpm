@@ -32,6 +32,22 @@ RUNTIME_ITEMS=(
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
+sync_runtime_item() {
+  local name=$1
+  local src="$APP_ROOT/$name"
+  local dst="$RUNTIME_ROOT/$name"
+
+  [[ -e "$src" ]] || return 0
+
+  rm -rf "$dst"
+  if [[ -d "$src" ]]; then
+    cp -a "$src" "$dst"
+  else
+    install -D -m 0755 /dev/null "$dst"
+    cp -a "$src" "$dst"
+  fi
+}
+
 # If the state file already points at the runtime copy from a prior run, break
 # that link before reseeding so repeated launches stay idempotent.
 if [[ -L "$STATE_ROOT/service.json" ]]; then
@@ -58,10 +74,7 @@ for existing in "$RUNTIME_ROOT"/*; do
 done
 
 for name in "${RUNTIME_ITEMS[@]}"; do
-  src="$APP_ROOT/$name"
-  if [[ -e "$src" ]]; then
-    ln -sfn "$src" "$RUNTIME_ROOT/$name"
-  fi
+  sync_runtime_item "$name"
 done
 
 # Preserve service.json across runs, but avoid copying when source and target

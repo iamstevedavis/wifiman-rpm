@@ -14,8 +14,12 @@ cat > "$APP_ROOT/wifiman-desktopd" <<'EOF'
 set -euo pipefail
 printf '%s\n' "$PWD" > "$STATE_ROOT/pwd.txt"
 printf '%s\n' "$0" > "$STATE_ROOT/argv0.txt"
+printf '%s\n' "$(readlink -f "$0")" > "$STATE_ROOT/resolved_argv0.txt"
 printf '%s\n' "${LOG_DIR:-}" > "$STATE_ROOT/log_dir.txt"
 printf '%s\n' "${LOG_PATH:-}" > "$STATE_ROOT/log_path.txt"
+exe_dir=$(dirname "$(readlink -f "$0")")
+printf '%s\n' "$exe_dir/wg-runtime.conf" > "$STATE_ROOT/wg_conf_path.txt"
+printf 'runtime-conf\n' > "$exe_dir/wg-runtime.conf"
 printf 'seed\n' > service.json.tmp
 mv service.json.tmp service.json
 EOF
@@ -31,9 +35,9 @@ chmod +x "$APP_ROOT/wg"
 APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktopd-wrapper.sh"
 
 test -d "$STATE_ROOT/app-root"
-test -L "$STATE_ROOT/app-root/wifiman-desktopd"
-test -L "$STATE_ROOT/app-root/compat"
-test -L "$STATE_ROOT/app-root/wg"
+test -f "$STATE_ROOT/app-root/wifiman-desktopd"
+test -d "$STATE_ROOT/app-root/compat"
+test -f "$STATE_ROOT/app-root/wg"
 test ! -e "$STATE_ROOT/app-root/package.txt"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.log"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.service"
@@ -41,12 +45,16 @@ test ! -L "$STATE_ROOT/app-root/service.json"
 test -L "$STATE_ROOT/service.json"
 test "$(readlink "$STATE_ROOT/service.json")" = "$STATE_ROOT/app-root/service.json"
 test ! -e "$STATE_ROOT/service.json.tmp"
+test -f "$STATE_ROOT/app-root/wg-runtime.conf"
 grep -qx "$STATE_ROOT/app-root" "$STATE_ROOT/pwd.txt"
 grep -qx "$STATE_ROOT/app-root/wifiman-desktopd" "$STATE_ROOT/argv0.txt"
+grep -qx "$STATE_ROOT/app-root/wifiman-desktopd" "$STATE_ROOT/resolved_argv0.txt"
+grep -qx "$STATE_ROOT/app-root/wg-runtime.conf" "$STATE_ROOT/wg_conf_path.txt"
 grep -qx "$STATE_ROOT" "$STATE_ROOT/log_dir.txt"
 grep -qx "$STATE_ROOT/wifiman-desktop.log" "$STATE_ROOT/log_path.txt"
 grep -qx 'seed' "$STATE_ROOT/app-root/service.json"
 grep -qx 'seed' "$STATE_ROOT/service.json"
 grep -qx '{"original":true}' "$APP_ROOT/service.json"
+test ! -e "$APP_ROOT/wg-runtime.conf"
 
 echo "runtime wrapper test passed"

@@ -14,8 +14,12 @@ cat > "$APP_ROOT/wi-fiman-desktop-bin" <<'EOF'
 set -euo pipefail
 printf '%s\n' "$PWD" > "$HOME/pwd.txt"
 printf '%s\n' "$0" > "$HOME/argv0.txt"
+printf '%s\n' "$(readlink -f "$0")" > "$HOME/resolved_argv0.txt"
 printf '%s\n' "${LOG_DIR:-}" > "$HOME/log_dir.txt"
 printf '%s\n' "${LOG_PATH:-}" > "$HOME/log_path.txt"
+exe_dir=$(dirname "$(readlink -f "$0")")
+printf '%s\n' "$exe_dir/wg-ui.conf" > "$HOME/wg_conf_path.txt"
+printf 'ui-conf\n' > "$exe_dir/wg-ui.conf"
 printf 'ui-seed\n' > service.json.tmp
 mv service.json.tmp service.json
 EOF
@@ -33,21 +37,25 @@ HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wi-fiman-desktop-l
 
 STATE_ROOT="$HOME_DIR/.local/state/wifiman-desktop"
 test -d "$STATE_ROOT/app-root"
-test -L "$STATE_ROOT/app-root/wi-fiman-desktop-bin"
-test -L "$STATE_ROOT/app-root/compat"
-test -L "$STATE_ROOT/app-root/wg"
+test -f "$STATE_ROOT/app-root/wi-fiman-desktop-bin"
+test -d "$STATE_ROOT/app-root/compat"
+test -f "$STATE_ROOT/app-root/wg"
 test ! -e "$STATE_ROOT/app-root/package.txt"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.log"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.service"
 test ! -L "$STATE_ROOT/app-root/service.json"
 test -L "$STATE_ROOT/service.json"
 test "$(readlink "$STATE_ROOT/service.json")" = "$STATE_ROOT/app-root/service.json"
+test -f "$STATE_ROOT/app-root/wg-ui.conf"
 grep -qx "$STATE_ROOT/app-root" "$HOME_DIR/pwd.txt"
 grep -qx "$STATE_ROOT/app-root/wi-fiman-desktop-bin" "$HOME_DIR/argv0.txt"
+grep -qx "$STATE_ROOT/app-root/wi-fiman-desktop-bin" "$HOME_DIR/resolved_argv0.txt"
+grep -qx "$STATE_ROOT/app-root/wg-ui.conf" "$HOME_DIR/wg_conf_path.txt"
 grep -qx "$STATE_ROOT" "$HOME_DIR/log_dir.txt"
 grep -qx "$STATE_ROOT/wifiman-desktop.log" "$HOME_DIR/log_path.txt"
 grep -qx 'ui-seed' "$STATE_ROOT/service.json"
 grep -qx 'ui-seed' "$STATE_ROOT/app-root/service.json"
 grep -qx '{"original":true}' "$APP_ROOT/service.json"
+test ! -e "$APP_ROOT/wg-ui.conf"
 
 echo "launcher state root test passed"
