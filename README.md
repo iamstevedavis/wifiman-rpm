@@ -88,6 +88,42 @@ Artifacts are written to:
 find ./.rpmbuild/RPMS ./.rpmbuild/SRPMS -type f | sort
 ```
 
+## Clean removal / install helper scripts
+
+For a clean local reinstall, remove the package, service, and runtime state:
+
+```bash
+./scripts/remove-wifiman-desktop.sh
+```
+
+By default this removes `/var/lib/wifiman-desktop` and the current user's WiFiman state under `${XDG_STATE_HOME:-~/.local/state}`. It keeps local SELinux modules unless explicitly requested:
+
+```bash
+REMOVE_SELINUX_MODULES=1 ./scripts/remove-wifiman-desktop.sh
+```
+
+Build, install, and start the service in one command:
+
+```bash
+./scripts/install-and-run-wifiman-desktop.sh
+```
+
+Useful overrides:
+
+```bash
+RPM_PATH=/path/to/wifiman-desktop.rpm BUILD_RPM=0 ./scripts/install-and-run-wifiman-desktop.sh
+INSTALL_SELINUX_POLICY=1 ./scripts/install-and-run-wifiman-desktop.sh
+LAUNCH_APP=1 ./scripts/install-and-run-wifiman-desktop.sh
+```
+
+Collect diagnostics to paste into an issue/chat:
+
+```bash
+./scripts/collect-wifiman-debug-logs.sh
+```
+
+The log bundle is written to `/tmp/wifiman-debug.log` by default.
+
 ## Install the built RPM on Fedora
 
 Adjust the exact filename if the release changes:
