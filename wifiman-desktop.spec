@@ -14,6 +14,7 @@ Source1:        LICENSE
 Source2:        wi-fiman-desktop-launcher.sh
 Source3:        default-service.json
 Source4:        wifiman-desktopd-wrapper.sh
+Source5:        wi-fiman-desktop.desktop
 
 BuildArch:      x86_64
 BuildRequires:  desktop-file-utils
@@ -44,7 +45,7 @@ Requires:       dbus-x11
 %description
 WiFiman Desktop packaged for newer Fedora releases using an app-private
 compatibility runtime for the older WebKitGTK 4.0 / libsoup2 stack that the
-upstream 1.1.x binary still requires.
+upstream 1.2.x binary still requires.
 
 %prep
 %autosetup -c -T
@@ -74,15 +75,6 @@ for candidate in staged/upstream/usr/lib/wi-fiman-desktop staged/upstream/usr/li
   fi
 done
 [ -n "$UPSTREAM_LIBDIR" ]
-
-UPSTREAM_DESKTOP=
-for candidate in staged/upstream/usr/share/applications/wi-fiman-desktop.desktop staged/upstream/usr/share/applications/wifiman-desktop.desktop; do
-  if [ -f "$candidate" ]; then
-    UPSTREAM_DESKTOP="$candidate"
-    break
-  fi
-done
-[ -n "$UPSTREAM_DESKTOP" ]
 
 UPSTREAM_ICON_32=
 for candidate in staged/upstream/usr/share/icons/hicolor/32x32/apps/wi-fiman-desktop.png staged/upstream/usr/share/icons/hicolor/32x32/apps/wifiman-desktop.png; do
@@ -115,11 +107,6 @@ install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop
 install -m 0755 "$UPSTREAM_BIN" \
   %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
 cp -a "$UPSTREAM_LIBDIR"/. %{buildroot}%{_prefix}/lib/wi-fiman-desktop/
-cp -a staged/upstream/usr/share %{buildroot}%{_prefix}/
-rm -f %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
-rm -f %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/wifiman-desktop.png
-rm -f %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/wifiman-desktop.png
-rm -f %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wifiman-desktop.png
 
 install -d %{buildroot}%{_localstatedir}/lib/%{name}
 install -m 0644 %{SOURCE3} %{buildroot}%{_localstatedir}/lib/%{name}/service.json
@@ -151,9 +138,7 @@ sed -i 's#^ExecStart=.*#ExecStart=/usr/lib/wi-fiman-desktop/wifiman-desktopd-wra
   %{buildroot}%{_unitdir}/%{name}.service
 
 install -d %{buildroot}%{_datadir}/applications
-install -m 0644 "$UPSTREAM_DESKTOP" \
-  %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
-sed -i 's/^Comment=.*/Comment=Discover devices and access Teleport VPNs/' \
+install -m 0644 %{SOURCE5} \
   %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
 
 install -d %{buildroot}%{_datadir}/icons/hicolor/32x32/apps
@@ -171,6 +156,9 @@ install -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 
 %check
 desktop-file-validate %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+grep -qx 'Name=WiFiman Desktop' %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+grep -qx 'Exec=wi-fiman-desktop %U' %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+grep -qx 'Icon=wi-fiman-desktop' %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
 
 %post
 %systemd_post %{name}.service
