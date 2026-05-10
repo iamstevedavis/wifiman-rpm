@@ -20,7 +20,7 @@ mv service.json.tmp service.json
 EOF
 chmod +x "$APP_ROOT/wi-fiman-desktop-bin"
 
-HOME="$HOME_DIR" XDG_STATE_HOME="$XDG_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh"
+HOME="$HOME_DIR" XDG_STATE_HOME="$XDG_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 
 STATE_ROOT="$XDG_DIR/wifiman-desktop"
 test -d "$STATE_ROOT/app-root"
