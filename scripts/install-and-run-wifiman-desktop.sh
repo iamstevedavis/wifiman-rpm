@@ -11,6 +11,7 @@ START_SERVICE=${START_SERVICE:-1}
 LAUNCH_APP=${LAUNCH_APP:-0}
 INSTALL_BUILD_DEPS=${INSTALL_BUILD_DEPS:-1}
 INSTALL_SELINUX_POLICY=${INSTALL_SELINUX_POLICY:-0}
+DNF_REFRESH=${DNF_REFRESH:-1}
 
 run_sudo() {
   if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
@@ -24,9 +25,17 @@ log() {
   printf '==> %s\n' "$*"
 }
 
+dnf_install() {
+  if [[ "$DNF_REFRESH" == "1" ]]; then
+    run_sudo dnf --refresh install -y "$@"
+  else
+    run_sudo dnf install -y "$@"
+  fi
+}
+
 if [[ "$INSTALL_BUILD_DEPS" == "1" ]]; then
   log "Installing build/runtime helper packages"
-  run_sudo dnf install -y docker git policycoreutils-python-utils setools-console
+  dnf_install docker git policycoreutils-python-utils setools-console
   log "Enabling Docker"
   run_sudo systemctl enable --now docker
 fi
@@ -50,7 +59,7 @@ if [[ -z "$RPM_PATH" ]]; then
 fi
 
 log "Installing RPM: $RPM_PATH"
-run_sudo dnf install -y "$RPM_PATH"
+dnf_install "$RPM_PATH"
 
 if [[ "$INSTALL_SELINUX_POLICY" == "1" ]]; then
   log "Installing bundled SELinux policy helper"
