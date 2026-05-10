@@ -12,6 +12,7 @@ LAUNCH_APP=${LAUNCH_APP:-0}
 INSTALL_BUILD_DEPS=${INSTALL_BUILD_DEPS:-1}
 INSTALL_SELINUX_POLICY=${INSTALL_SELINUX_POLICY:-0}
 DNF_REFRESH=${DNF_REFRESH:-1}
+DNF_CLEAN_METADATA=${DNF_CLEAN_METADATA:-1}
 
 run_sudo() {
   if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
@@ -32,6 +33,11 @@ dnf_install() {
     run_sudo dnf install -y "$@"
   fi
 }
+
+if [[ "$DNF_CLEAN_METADATA" == "1" ]]; then
+  log "Cleaning DNF metadata cache"
+  run_sudo dnf clean metadata
+fi
 
 if [[ "$INSTALL_BUILD_DEPS" == "1" ]]; then
   log "Installing build/runtime helper packages"

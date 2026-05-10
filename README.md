@@ -88,6 +88,20 @@ Artifacts are written to:
 find ./.rpmbuild/RPMS ./.rpmbuild/SRPMS -type f | sort
 ```
 
+
+## Release builds
+
+The GitHub Actions release workflow builds versioned RPM artifacts and publishes them as downloadable assets.
+
+- Push a tag like `v1.2.10` to create/update the matching GitHub release.
+- Or run the **release** workflow manually with `version`, `rpm_release`, and `create_release=true`.
+
+The workflow uploads:
+
+- binary RPM from `.rpmbuild/RPMS`
+- source RPM from `.rpmbuild/SRPMS`
+- SHA256 checksum file
+
 ## Clean removal / install helper scripts
 
 For a clean local reinstall, remove the package, service, and runtime state:
@@ -115,6 +129,7 @@ RPM_PATH=/path/to/wifiman-desktop.rpm BUILD_RPM=0 ./scripts/install-and-run-wifi
 INSTALL_SELINUX_POLICY=1 ./scripts/install-and-run-wifiman-desktop.sh
 LAUNCH_APP=1 ./scripts/install-and-run-wifiman-desktop.sh
 DNF_REFRESH=0 ./scripts/install-and-run-wifiman-desktop.sh
+DNF_CLEAN_METADATA=0 ./scripts/install-and-run-wifiman-desktop.sh
 ```
 
 Collect diagnostics to paste into an issue/chat:

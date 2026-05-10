@@ -7,6 +7,7 @@ USER_STATE_ROOT=${USER_STATE_ROOT:-"${XDG_STATE_HOME:-$HOME/.local/state}/wifima
 REMOVE_USER_STATE=${REMOVE_USER_STATE:-1}
 REMOVE_SYSTEM_STATE=${REMOVE_SYSTEM_STATE:-1}
 REMOVE_SELINUX_MODULES=${REMOVE_SELINUX_MODULES:-0}
+DNF_CLEAN_METADATA=${DNF_CLEAN_METADATA:-1}
 
 run_sudo() {
   if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
@@ -28,6 +29,11 @@ if rpm -q "$APP_NAME" >/dev/null 2>&1; then
   run_sudo dnf remove -y "$APP_NAME"
 else
   log "$APP_NAME is not installed"
+fi
+
+if [[ "$DNF_CLEAN_METADATA" == "1" ]]; then
+  log "Cleaning DNF metadata cache"
+  run_sudo dnf clean metadata
 fi
 
 if [[ "$REMOVE_SYSTEM_STATE" == "1" ]]; then

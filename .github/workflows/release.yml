@@ -10,10 +10,15 @@ on:
         description: 'Upstream WiFiman Desktop version to package'
         required: false
         default: '1.2.10'
-      release:
+      rpm_release:
         description: 'RPM release number'
         required: false
         default: '1'
+      create_release:
+        description: 'Create or update a GitHub release with downloadable RPM assets'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build-and-release:
@@ -22,7 +27,7 @@ jobs:
       contents: write
     env:
       VERSION: ${{ inputs.version || '1.2.10' }}
-      RELEASE: ${{ inputs.release || '1' }}
+      RELEASE: ${{ inputs.rpm_release || '1' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +35,17 @@ jobs:
       - name: Set version from tag
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Set release metadata
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="wifiman-desktop-${VERSION}-${RELEASE}"
+          fi
+          echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
+          echo "ASSET_PREFIX=wifiman-desktop-${VERSION}-${RELEASE}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
@@ -40,23 +56,36 @@ jobs:
         run: ./tests/run-all.sh
 
       - name: Build RPM
-        run: ./scripts/build-rpm-from-stage.sh
+        run: VERSION="${VERSION}" RELEASE="${RELEASE}" ./scripts/build-rpm-from-stage.sh
 
-      - name: Collect artifacts
+      - name: Collect versioned artifacts
         run: |
+          set -euo pipefail
           mkdir -p dist
-          find .rpmbuild/RPMS .rpmbuild/SRPMS -type f \( -name '*.rpm' -o -name '*.src.rpm' \) -exec cp -v {} dist/ \;
+          mapfile -t rpms < <(find .rpmbuild/RPMS .rpmbuild/SRPMS -type f \( -name '*.rpm' -o -name '*.src.rpm' \) | sort)
+          if [[ ${#rpms[@]} -eq 0 ]]; then
+            echo "No RPM artifacts found" >&2
+            exit 1
+          fi
+          for rpm in "${rpms[@]}"; do
+            cp -v "$rpm" "dist/$(basename "$rpm")"
+          done
+          (cd dist && sha256sum * > "${ASSET_PREFIX}-SHA256SUMS.txt")
           ls -lah dist
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wifiman-desktop-rpms-${{ env.VERSION }}
+          name: ${{ env.ASSET_PREFIX }}-rpms
           path: dist/*
+          if-no-files-found: error
 
-      - name: Create GitHub release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Create or update GitHub release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: WiFiman Desktop ${{ env.VERSION }}-${{ env.RELEASE }}
           files: dist/*
           generate_release_notes: true
+          fail_on_unmatched_files: true
