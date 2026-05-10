@@ -53,11 +53,15 @@ cp "$ROOT_DIR/scripts/wifiman-desktop.desktop" "$TOPDIR/SOURCES/"
   docker run --rm \
     --workdir /rpmbuild \
     -v "$TOPDIR:/rpmbuild:Z" \
+    -e VERSION="$VERSION" \
+    -e RELEASE="$RELEASE" \
     "$FEDORA_IMAGE" bash -lc '
       set -euo pipefail
       dnf -qy install rpm-build desktop-file-utils systemd-rpm-macros >/dev/null
       rpmbuild \
         --define "_topdir /rpmbuild" \
+        --define "app_version ${VERSION}" \
+        --define "app_release ${RELEASE}" \
         -ba "/rpmbuild/SPECS/wifiman-desktop.spec"
     '
 )

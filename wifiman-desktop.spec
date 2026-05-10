@@ -2,9 +2,12 @@
 %define _build_id_links none
 %define debug_package %{nil}
 
+%global app_version %{?app_version}%{!?app_version:1.2.10}
+%global app_release %{?app_release}%{!?app_release:1}
+
 Name:           wifiman-desktop
-Version:        1.2.10
-Release:        1%{?dist}
+Version:        %{app_version}
+Release:        %{app_release}%{?dist}
 Summary:        Discover devices and access Teleport VPNs
 License:        MIT
 Vendor:         Ubiquiti Inc. <monitoring@wifiman.com>
