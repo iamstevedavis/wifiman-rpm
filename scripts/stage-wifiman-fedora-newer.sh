@@ -55,7 +55,6 @@ text = path.read_text()
 replacements = {
     "UPDATER_DELAY=120000": "UPDATER_DELAY=31536000000",
     "UPDATER_INTERVAL=43200000": "UPDATER_INTERVAL=31536000000",
-    "# LOG_LEVEL=debug": "LOG_LEVEL=debug",
 }
 for old, new in replacements.items():
     if old in text:

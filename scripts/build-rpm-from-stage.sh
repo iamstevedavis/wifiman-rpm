@@ -46,6 +46,7 @@ cp "$ROOT_DIR/LICENSE" "$TOPDIR/SOURCES/"
 cp "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh" "$TOPDIR/SOURCES/"
 cp "$ROOT_DIR/scripts/default-service.json" "$TOPDIR/SOURCES/"
 cp "$ROOT_DIR/scripts/wifiman-desktopd-wrapper.sh" "$TOPDIR/SOURCES/"
+cp "$ROOT_DIR/scripts/wi-fiman-desktop.desktop" "$TOPDIR/SOURCES/"
 
 (
   cd /
