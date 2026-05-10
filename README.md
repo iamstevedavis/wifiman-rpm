@@ -112,14 +112,17 @@ find ./.rpmbuild/RPMS ./.rpmbuild/SRPMS -type f | sort
 
 The GitHub Actions release workflow builds versioned RPM artifacts and publishes them as downloadable assets.
 
-- Push a tag like `v1.2.10` to create/update the matching GitHub release.
-- Or run the **release** workflow manually with `version`, `rpm_release`, and `create_release=true`.
+- Push a semantic-version tag like `v1.2.10` to create/update the matching GitHub release.
+- Use `vMAJOR.MINOR.PATCH` for package releases, e.g. `v1.2.11`; pass `upstream_version` separately when it differs from the package release version.
+- Or run the **release** workflow manually with `version`, `upstream_version`, `rpm_release`, and `create_release=true`.
 
 The workflow uploads:
 
 - binary RPM from `.rpmbuild/RPMS`
 - source RPM from `.rpmbuild/SRPMS`
 - SHA256 checksum file
+
+Release notes include the upstream WiFiman Desktop version and RPM install commands.
 
 ## Clean removal / install helper scripts
 

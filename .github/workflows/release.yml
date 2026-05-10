@@ -7,6 +7,10 @@ on:
   workflow_dispatch:
     inputs:
       version:
+        description: 'Package semantic version, for example 1.2.11'
+        required: false
+        default: '1.2.10'
+      upstream_version:
         description: 'Upstream WiFiman Desktop version to package'
         required: false
         default: '1.2.10'
@@ -27,6 +31,7 @@ jobs:
       contents: write
     env:
       VERSION: ${{ inputs.version || '1.2.10' }}
+      UPSTREAM_VERSION: ${{ inputs.upstream_version || inputs.version || '1.2.10' }}
       RELEASE: ${{ inputs.rpm_release || '1' }}
     steps:
       - name: Checkout
@@ -34,7 +39,19 @@ jobs:
 
       - name: Set version from tag
         if: startsWith(github.ref, 'refs/tags/v')
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          echo "UPSTREAM_VERSION=${version%%-*}" >> "$GITHUB_ENV"
+
+      - name: Validate semantic version
+        run: |
+          set -euo pipefail
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must be semantic version style: 1.2.11" >&2
+            exit 1
+          fi
 
       - name: Set release metadata
         run: |
@@ -42,7 +59,7 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
             tag="${GITHUB_REF_NAME}"
           else
-            tag="wifiman-desktop-${VERSION}-${RELEASE}"
+            tag="v${VERSION}"
           fi
           echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
           echo "ASSET_PREFIX=wifiman-desktop-${VERSION}-${RELEASE}" >> "$GITHUB_ENV"
@@ -56,7 +73,7 @@ jobs:
         run: ./tests/run-all.sh
 
       - name: Build RPM
-        run: VERSION="${VERSION}" RELEASE="${RELEASE}" ./scripts/build-rpm-from-stage.sh
+        run: VERSION="${VERSION}" RELEASE="${RELEASE}" UPSTREAM_VERSION="${UPSTREAM_VERSION}" ./scripts/build-rpm-from-stage.sh
 
       - name: Collect versioned artifacts
         run: |
@@ -73,6 +90,42 @@ jobs:
           (cd dist && sha256sum * > "${ASSET_PREFIX}-SHA256SUMS.txt")
           ls -lah dist
 
+      - name: Write release notes
+        run: |
+          set -euo pipefail
+          rpm_name=$(basename "$(find dist -maxdepth 1 -type f -name 'wifiman-desktop-*.x86_64.rpm' | sort | tail -n 1)")
+          cat > release-notes.md <<EOF_NOTES
+          ## WiFiman Desktop RPM ${VERSION}-${RELEASE}
+
+          Built from upstream WiFiman Desktop **${UPSTREAM_VERSION}**.
+
+          ### Install on Fedora
+
+          1. Download \`${rpm_name}\` from the assets below.
+          2. Install it with DNF:
+
+             \`\`\`bash
+             sudo dnf install ./${rpm_name}
+             \`\`\`
+
+          3. Launch **WiFiman Desktop** from your applications menu, or run:
+
+             \`\`\`bash
+             wifiman-desktop
+             \`\`\`
+
+          ### SELinux-enforcing Fedora
+
+          If the daemon is blocked by SELinux denials after install, run the bundled helper from a repo checkout:
+
+          \`\`\`bash
+          ./scripts/install-selinux-policy.sh
+          \`\`\`
+
+          It installs the repo-managed local SELinux module and any useful recent AVC-derived rules without disabling SELinux enforcement.
+          EOF_NOTES
+          sed -i 's/^          //' release-notes.md
+
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -85,7 +138,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          name: WiFiman Desktop ${{ env.VERSION }}-${{ env.RELEASE }}
+          name: WiFiman Desktop RPM ${{ env.VERSION }}-${{ env.RELEASE }}
+          body_path: release-notes.md
           files: dist/*
-          generate_release_notes: true
           fail_on_unmatched_files: true
