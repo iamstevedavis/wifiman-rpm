@@ -115,6 +115,7 @@ RPM_PATH=/path/to/wifiman-desktop.rpm BUILD_RPM=0 ./scripts/install-and-run-wifi
 INSTALL_SELINUX_POLICY=1 ./scripts/install-and-run-wifiman-desktop.sh
 LAUNCH_APP=1 ./scripts/install-and-run-wifiman-desktop.sh
 DNF_REFRESH=0 ./scripts/install-and-run-wifiman-desktop.sh
+DNF_CLEAN_METADATA=0 ./scripts/install-and-run-wifiman-desktop.sh
 ```
 
 Collect diagnostics to paste into an issue/chat:
