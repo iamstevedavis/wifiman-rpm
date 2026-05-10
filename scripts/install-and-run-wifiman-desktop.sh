@@ -80,9 +80,9 @@ fi
 
 if [[ "$LAUNCH_APP" == "1" ]]; then
   log "Launching desktop app"
-  wi-fiman-desktop "$@"
+  wifiman-desktop "$@"
 else
-  log "Desktop app is installed. Launch it with: wi-fiman-desktop"
+  log "Desktop app is installed. Launch it with: wifiman-desktop"
   log "Or run this script with LAUNCH_APP=1 to launch after install."
 fi
 

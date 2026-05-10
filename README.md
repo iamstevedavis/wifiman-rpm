@@ -4,6 +4,25 @@ This repo packages upstream **WiFiman Desktop 1.2.10** for newer Fedora releases
 
 The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment. When the upstream payload still includes its `.env`, the RPM build also suppresses the built-in updater prompt by stretching the packaged updater timing values.
 
+## Install the release RPM on Fedora
+
+Most users should install the prebuilt release RPM instead of building from source.
+
+1. Download the latest `wifiman-desktop-*-x86_64.rpm` from the [GitHub Releases page](https://github.com/iamstevedavis/wifiman-rpm/releases).
+2. Install it with DNF:
+
+```bash
+sudo dnf install ./wifiman-desktop-1.2.10-1.fc40.x86_64.rpm
+```
+
+3. Launch it from KDE / your Applications menu as **WiFiman Desktop**, or from a terminal:
+
+```bash
+wifiman-desktop
+```
+
+The package also installs and enables support files for the background daemon. If the daemon is blocked on SELinux-enforcing Fedora, see [SELinux policy helper](#selinux-policy-helper).
+
 ## What this repo does
 
 - downloads upstream `wifiman-desktop-1.2.10-amd64.deb`
@@ -140,21 +159,7 @@ Collect diagnostics to paste into an issue/chat:
 
 The log bundle is written to `/tmp/wifiman-debug.log` by default.
 
-## Install the built RPM on Fedora
-
-Adjust the exact filename if the release changes:
-
-```bash
-sudo dnf install ./.rpmbuild/RPMS/x86_64/wifiman-desktop-1.2.10-1*.rpm
-```
-
-Launch the app:
-
-```bash
-wi-fiman-desktop
-```
-
-## Enable the daemon service on SELinux-enforcing Fedora
+## SELinux policy helper
 
 The upstream daemon uses raw ICMP / raw socket operations for device discovery and related networking behavior. On Fedora with SELinux enforcing, that can trigger denials until a local policy module is installed.
 
@@ -172,13 +177,17 @@ If SELinux blocks the daemon, install the bundled local policy module and merge 
 ./scripts/install-selinux-policy.sh
 ```
 
-That helper:
+That helper is only needed when SELinux is enforcing and the daemon gets denied. It:
 
-- compiles and installs the repo's base SELinux policy source from `scripts/wifiman-desktop.te`
-- optionally generates a second AVC-derived local module when recent `wifiman-desktop` denials exist
-- installs those modules with `semodule`
+- re-runs itself with `sudo` when needed
+- compiles the repo-managed base policy from `scripts/wifiman-desktop.te`
+- installs that policy as the `wifiman-desktop` SELinux module with priority `300`
+- checks recent audit logs for `wifiman-desktop` AVC denials
+- optionally generates and installs a second local AVC-derived module, `wifiman_desktop_local`, when `ausearch`/`audit2allow` find useful denials
 - restarts `wifiman-desktop.service`
 - prints the resulting service status
+
+The helper does not change SELinux mode and does not disable enforcement. It adds local allow rules for this packaged daemon.
 
 If you need a wider audit window, you can override the time filter:
 

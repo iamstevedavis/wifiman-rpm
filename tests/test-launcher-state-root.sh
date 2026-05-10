@@ -32,8 +32,8 @@ mkdir -p "$APP_ROOT/compat"
 printf '#!/usr/bin/env bash\n' > "$APP_ROOT/wg"
 chmod +x "$APP_ROOT/wg"
 
-HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh"
-HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wi-fiman-desktop-launcher.sh"
+HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 
 STATE_ROOT="$HOME_DIR/.local/state/wifiman-desktop"
 test -d "$STATE_ROOT/app-root"

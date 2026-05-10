@@ -52,7 +52,7 @@ run_sudo() {
 
   echo
   echo "===== INSTALLED FILES ====="
-  ls -la /usr/bin/wi-fiman-desktop /usr/lib/wi-fiman-desktop 2>/dev/null || true
+  ls -la /usr/bin/wifiman-desktop /usr/lib/wi-fiman-desktop 2>/dev/null || true
 
   echo
   echo "===== SELINUX ====="

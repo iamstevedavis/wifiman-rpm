@@ -2,10 +2,10 @@
 Name=WiFiman Desktop
 GenericName=Network Discovery
 Comment=Discover devices and access Teleport VPNs
-Exec=wi-fiman-desktop %U
+Exec=wifiman-desktop %U
 Terminal=false
 Type=Application
-Icon=wi-fiman-desktop
+Icon=wifiman-desktop
 StartupNotify=true
 Categories=Network;
 Keywords=WiFiman;Ubiquiti;UniFi;Network;Teleport;VPN;

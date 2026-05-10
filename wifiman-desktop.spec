@@ -11,10 +11,10 @@ Vendor:         Ubiquiti Inc. <monitoring@wifiman.com>
 URL:            https://wifiman.com/
 Source0:        %{name}-%{version}-stage.tar.gz
 Source1:        LICENSE
-Source2:        wi-fiman-desktop-launcher.sh
+Source2:        wifiman-desktop-launcher.sh
 Source3:        default-service.json
 Source4:        wifiman-desktopd-wrapper.sh
-Source5:        wi-fiman-desktop.desktop
+Source5:        wifiman-desktop.desktop
 
 BuildArch:      x86_64
 BuildRequires:  desktop-file-utils
@@ -128,7 +128,7 @@ install -m 0644 staged/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtk
   %{buildroot}%{_libdir}/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so
 
 install -d %{buildroot}%{_bindir}
-install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wi-fiman-desktop
+install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wifiman-desktop
 install -m 0755 %{SOURCE4} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
 
 install -d %{buildroot}%{_unitdir}
@@ -139,26 +139,26 @@ sed -i 's#^ExecStart=.*#ExecStart=/usr/lib/wi-fiman-desktop/wifiman-desktopd-wra
 
 install -d %{buildroot}%{_datadir}/applications
 install -m 0644 %{SOURCE5} \
-  %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+  %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 
 install -d %{buildroot}%{_datadir}/icons/hicolor/32x32/apps
 install -m 0644 "$UPSTREAM_ICON_32" \
-  %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/wi-fiman-desktop.png
+  %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/wifiman-desktop.png
 install -d %{buildroot}%{_datadir}/icons/hicolor/128x128/apps
 install -m 0644 "$UPSTREAM_ICON_128" \
-  %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/wi-fiman-desktop.png
+  %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/wifiman-desktop.png
 install -d %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps
 install -m 0644 "$UPSTREAM_ICON_256" \
-  %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png
+  %{buildroot}%{_datadir}/icons/hicolor/256x256@2/apps/wifiman-desktop.png
 
 install -d %{buildroot}%{_datadir}/licenses/%{name}
 install -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 
 %check
-desktop-file-validate %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
-grep -qx 'Name=WiFiman Desktop' %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
-grep -qx 'Exec=wi-fiman-desktop %U' %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
-grep -qx 'Icon=wi-fiman-desktop' %{buildroot}%{_datadir}/applications/wi-fiman-desktop.desktop
+desktop-file-validate %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
+grep -qx 'Name=WiFiman Desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
+grep -qx 'Exec=wifiman-desktop %U' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
+grep -qx 'Icon=wifiman-desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 
 %post
 %systemd_post %{name}.service
@@ -181,12 +181,12 @@ fi
 
 %files
 %license %{_datadir}/licenses/%{name}/LICENSE
-%{_bindir}/wi-fiman-desktop
+%{_bindir}/wifiman-desktop
 %{_unitdir}/%{name}.service
-%{_datadir}/applications/wi-fiman-desktop.desktop
-%{_datadir}/icons/hicolor/32x32/apps/wi-fiman-desktop.png
-%{_datadir}/icons/hicolor/128x128/apps/wi-fiman-desktop.png
-%{_datadir}/icons/hicolor/256x256@2/apps/wi-fiman-desktop.png
+%{_datadir}/applications/wifiman-desktop.desktop
+%{_datadir}/icons/hicolor/32x32/apps/wifiman-desktop.png
+%{_datadir}/icons/hicolor/128x128/apps/wifiman-desktop.png
+%{_datadir}/icons/hicolor/256x256@2/apps/wifiman-desktop.png
 %dir %{_prefix}/lib/wi-fiman-desktop
 %{_prefix}/lib/wi-fiman-desktop/wi-fiman-desktop-bin
 %{_prefix}/lib/wi-fiman-desktop/.env
