@@ -38,7 +38,7 @@ sudo dnf install ./wifiman-desktop-1.2.10-1.fc40.x86_64.rpm
 wifiman-desktop
 ```
 
-The package also installs and enables support files for the background daemon. If the daemon is blocked on SELinux-enforcing Fedora, see [SELinux policy helper](#selinux-policy-helper).
+The SELinux helper is **not required for installation**. Start with the RPM install and app launch above. Only run `./scripts/install-selinux-policy.sh` later if the daemon/app is blocked by SELinux denials on an enforcing Fedora system. See [SELinux policy helper](#selinux-policy-helper) for details.
 
 ## What this repo does
 
