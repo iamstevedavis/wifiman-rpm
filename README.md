@@ -1,8 +1,25 @@
-# WiFiman Desktop RPM for newer Fedora
+# WiFiman Desktop RPM for Fedora
 
-This repo packages upstream **WiFiman Desktop 1.2.10** for newer Fedora releases.
+![WiFiman Desktop RPM for Fedora](docs/assets/wifiman-rpm-card.svg)
+
+[![Release](https://github.com/iamstevedavis/wifiman-rpm/actions/workflows/release.yml/badge.svg)](https://github.com/iamstevedavis/wifiman-rpm/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/iamstevedavis/wifiman-rpm?sort=semver)](https://github.com/iamstevedavis/wifiman-rpm/releases/latest)
+![Fedora](https://img.shields.io/badge/Fedora-40%2B-51A2DA?logo=fedora&logoColor=white)
+![Architecture](https://img.shields.io/badge/arch-x86__64-blue)
+![License](https://img.shields.io/github/license/iamstevedavis/wifiman-rpm)
+
+Fedora RPM packaging for **WiFiman Desktop 1.2.10**, with a KDE/app-menu launcher, private WebKitGTK compatibility runtime, release artifacts, and SELinux helper tooling for newer Fedora releases.
 
 The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment. When the upstream payload still includes its `.env`, the RPM build also suppresses the built-in updater prompt by stretching the packaged updater timing values.
+
+## Highlights
+
+- Downloadable versioned RPMs from GitHub Releases
+- KDE / desktop launcher named **WiFiman Desktop**
+- Terminal launcher command: `wifiman-desktop`
+- Private compatibility runtime for the older upstream WebKitGTK stack
+- Optional SELinux policy helper for daemon networking denials
+- Local helper scripts for clean reinstall, launch, and debug log collection
 
 ## Install the release RPM on Fedora
 
@@ -24,6 +41,8 @@ wifiman-desktop
 The package also installs and enables support files for the background daemon. If the daemon is blocked on SELinux-enforcing Fedora, see [SELinux policy helper](#selinux-policy-helper).
 
 ## What this repo does
+
+This project repackages WiFiman Desktop for Fedora users who want a native RPM install path on newer Fedora/KDE systems.
 
 - downloads upstream `wifiman-desktop-1.2.10-amd64.deb`
 - extracts the app payload
