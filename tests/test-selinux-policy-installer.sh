@@ -26,9 +26,8 @@ grep -q 'WIFIMAN_ASSUME_ROOT_FOR_TESTS' "$INSTALLER"
 grep -q 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' "$INSTALLER"
 grep -q 'AVC_MODULE_NAME=' "$INSTALLER"
 grep -q 'compile_and_install' "$INSTALLER"
-grep -q 'audit2allow -M "\$AVC_MODULE_NAME"' "$INSTALLER"
-grep -q 'cd "\$TMP_DIR"' "$INSTALLER"
-grep -q 'if \[\[ -f "\$TMP_DIR/\$AVC_MODULE_NAME.te" && -f "\$TMP_DIR/\$AVC_MODULE_NAME.pp" \]\]' "$INSTALLER"
+grep -q 'audit2allow -m "\$AVC_MODULE_NAME"' "$INSTALLER"
+grep -q 'REVIEWED_AVC_TE=' "$INSTALLER"
 
 python3 - <<'PY' "$INSTALLER"
 from pathlib import Path
@@ -39,12 +38,13 @@ assert 'cp "$BASE_TE" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
 assert 'compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"' in text
 assert 'WIFIMAN_ASSUME_ROOT_FOR_TESTS' in text
 assert 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' in text
-assert 'audit2allow -M "$AVC_MODULE_NAME"' in text
-assert 'cd "$TMP_DIR"' in text
-assert 'if [[ -f "$TMP_DIR/$AVC_MODULE_NAME.te" && -f "$TMP_DIR/$AVC_MODULE_NAME.pp" ]]' in text
+assert 'audit2allow -m "$AVC_MODULE_NAME"' in text
+assert 'audit2allow -M' not in text, 'unreviewed AVCs must not produce installable modules'
+assert 'cp "$REVIEWED_AVC_TE" "$TMP_DIR/$AVC_MODULE_NAME.te"' in text
+assert '>/dev/null 2>&1 || true' not in text, 'generation errors must not be suppressed'
 assert 'SELINUX_MODULE_PRIORITY=${SELINUX_MODULE_PRIORITY:-300}' in text
 assert 'semodule -X "$SELINUX_MODULE_PRIORITY" -i "$TMP_DIR/$module_name.pp"' in text
-assert 'semodule -X "$SELINUX_MODULE_PRIORITY" -i "$TMP_DIR/$AVC_MODULE_NAME.pp"' in text
+assert 'compile_and_install "$AVC_MODULE_NAME" "$TMP_DIR/$AVC_MODULE_NAME.te"' in text
 print('selinux installer structure OK')
 PY
 
