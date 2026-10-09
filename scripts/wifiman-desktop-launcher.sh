@@ -104,5 +104,14 @@ rm -f "$STATE_ROOT/service.json.tmp"
 export LOG_DIR="$STATE_ROOT"
 export LOG_PATH="$STATE_ROOT/wifiman-desktop.log"
 
+# Match the staged wrapper's compatibility-runtime exports. The upstream
+# binary still needs the bundled WebKitGTK 4.0 / libsoup2 stack, so point
+# the loader and WebKit helper lookup at the mirrored compat tree.
+# WEBKIT_FORCE_SANDBOX is deliberately not copied from the staged wrapper;
+# sandbox settings get their own review.
+export LD_LIBRARY_PATH="$RUNTIME_ROOT/compat/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export WEBKIT_EXEC_PATH="$RUNTIME_ROOT/compat/libexec/webkit2gtk-4.0"
+export WEBKIT_INJECTED_BUNDLE_PATH="$RUNTIME_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so"
+
 cd "$RUNTIME_ROOT"
 exec "$RUNTIME_ROOT/wi-fiman-desktop-bin" "$@"
