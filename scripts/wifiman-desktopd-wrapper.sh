@@ -37,18 +37,31 @@ sync_runtime_item() {
   fi
 }
 
-# If the state file already points at the runtime copy from a prior run, break
-# that link before reseeding so repeated service starts stay idempotent.
+# If the state file already points at the runtime copy from a prior run, the
+# config is already in the right place — preserve it. Only reseed when the
+# symlink is broken or the runtime copy is missing.
 if [[ -L "$STATE_ROOT/service.json" ]]; then
   target=$(readlink -f "$STATE_ROOT/service.json" || true)
   runtime_service=$(readlink -f "$RUNTIME_ROOT/service.json" 2>/dev/null || true)
   if [[ -n "$target" && "$target" == "$runtime_service" ]]; then
+    # Symlink is valid and points at the runtime copy. Ensure the runtime
+    # copy exists (it may have been cleaned) but do NOT reseed — the existing
+    # config must survive.
+    if [[ ! -s "$RUNTIME_ROOT/service.json" ]]; then
+      printf '{}\n' > "$RUNTIME_ROOT/service.json"
+    fi
+    # Skip the reseed + copy below; the symlink already links state → runtime.
+    skip_service_sync=1
+  else
+    # Symlink is stale or points elsewhere — break it so we can reseed.
     rm -f "$STATE_ROOT/service.json"
   fi
 fi
 
-if [[ ! -s "$STATE_ROOT/service.json" ]]; then
-  printf '{}\n' > "$STATE_ROOT/service.json"
+if [[ ${skip_service_sync:-0} -eq 0 ]]; then
+  if [[ ! -s "$STATE_ROOT/service.json" ]]; then
+    printf '{}\n' > "$STATE_ROOT/service.json"
+  fi
 fi
 
 shopt -s dotglob nullglob
@@ -67,11 +80,14 @@ for name in "${RUNTIME_ITEMS[@]}"; do
 done
 
 # Preserve service.json across runs, but avoid copying when source and target
-# already match.
-if [[ ! -e "$RUNTIME_ROOT/service.json" ]] || ! cmp -s "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"; then
-  cp -f "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"
+# already match. When the symlink is already valid (skip_service_sync), the
+# state file IS the runtime file — no copy or relink needed.
+if [[ ${skip_service_sync:-0} -eq 0 ]]; then
+  if [[ ! -e "$RUNTIME_ROOT/service.json" ]] || ! cmp -s "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"; then
+    cp -f "$STATE_ROOT/service.json" "$RUNTIME_ROOT/service.json"
+  fi
+  ln -sfn "$RUNTIME_ROOT/service.json" "$STATE_ROOT/service.json"
 fi
-ln -sfn "$RUNTIME_ROOT/service.json" "$STATE_ROOT/service.json"
 rm -f "$STATE_ROOT/service.json.tmp"
 
 export LOG_DIR="$STATE_ROOT"
