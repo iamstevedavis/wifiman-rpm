@@ -8,6 +8,7 @@ tests=(
   "$TEST_DIR/test-daemon-wrapper-rerun.sh"
   "$TEST_DIR/test-desktop-entry.sh"
   "$TEST_DIR/test-dnf-cache-refresh.sh"
+  "$TEST_DIR/test-internal-path-contract.sh"
   "$TEST_DIR/test-launcher-xdg-state-home.sh"
   "$TEST_DIR/test-launcher-state-root.sh"
   "$TEST_DIR/test-launcher-compat-env.sh"

@@ -99,6 +99,8 @@ jobs:
 
           Built from upstream WiFiman Desktop **${UPSTREAM_VERSION}**.
 
+          The private app root remains \`/usr/lib/wi-fiman-desktop\` for compatibility; public names use \`wifiman-desktop\`. No internal-path migration or clean reinstall is required.
+
           ### Install on Fedora
 
           1. Download \`${rpm_name}\` from the assets below.

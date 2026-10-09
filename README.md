@@ -121,6 +121,11 @@ packaged `/usr/lib/wi-fiman-desktop/wifiman-desktop.log` compatibility symlink
 uses a relative target to avoid RPM's absolute-symlink warning. It is not
 mirrored into runtime state; both wrappers select their log file via `LOG_PATH`.
 
+The private `/usr/lib/wi-fiman-desktop` spelling is intentionally retained for
+compatibility; public names remain `wifiman-desktop`. No path migration or clean
+reinstall is required. See the [internal path audit and decision](docs/internal-paths.md)
+for the upstream, systemd, runtime and SELinux implications.
+
 ### 3) Test against a Fedora container
 
 ```bash
