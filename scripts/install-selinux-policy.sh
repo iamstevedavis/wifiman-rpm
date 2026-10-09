@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}
 AVC_MODULE_NAME=${AVC_MODULE_NAME:-wifiman_desktop_local}
+SELINUX_MODULE_PRIORITY=${SELINUX_MODULE_PRIORITY:-300}
 SINCE=${SINCE:-recent}
 TMP_DIR=$(mktemp -d)
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -29,7 +30,7 @@ compile_and_install() {
   local te_path=$2
   checkmodule -M -m -o "$TMP_DIR/$module_name.mod" "$te_path"
   semodule_package -o "$TMP_DIR/$module_name.pp" -m "$TMP_DIR/$module_name.mod"
-  semodule -X 300 -i "$TMP_DIR/$module_name.pp"
+  semodule -X "$SELINUX_MODULE_PRIORITY" -i "$TMP_DIR/$module_name.pp"
 }
 
 cp "$BASE_TE" "$TMP_DIR/$BASE_MODULE_NAME.te"
@@ -42,7 +43,7 @@ if command -v ausearch >/dev/null && command -v audit2allow >/dev/null; then
       ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" --raw | audit2allow -M "$AVC_MODULE_NAME" -p /var/lib/selinux/targeted/active/policy.* >/dev/null 2>&1 || true
     )
     if [[ -f "$TMP_DIR/$AVC_MODULE_NAME.te" && -f "$TMP_DIR/$AVC_MODULE_NAME.pp" ]]; then
-      semodule -X 300 -i "$TMP_DIR/$AVC_MODULE_NAME.pp"
+      semodule -X "$SELINUX_MODULE_PRIORITY" -i "$TMP_DIR/$AVC_MODULE_NAME.pp"
     else
       echo "No additional AVC-derived SELinux rules were generated (since=$SINCE)."
     fi
@@ -59,5 +60,6 @@ systemctl status wifiman-desktop.service --no-pager -l || true
 echo
 echo "Installed SELinux base module: $BASE_MODULE_NAME"
 echo "Installed SELinux AVC module: $AVC_MODULE_NAME (if generated)"
+echo "SELinux module priority: $SELINUX_MODULE_PRIORITY"
 echo "Base policy source: $BASE_TE"
 echo "AVC merge window: $SINCE"
