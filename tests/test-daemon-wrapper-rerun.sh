@@ -13,8 +13,12 @@ cat > "$APP_ROOT/wifiman-desktopd" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf '%s\n' "$PWD" > "$STATE_ROOT/pwd.txt"
-printf 'daemon-seed\n' > service.json.tmp
-mv service.json.tmp service.json
+if [[ ! -e "$STATE_ROOT/first-run" ]]; then
+  printf 'daemon-seed\n' > service.json.tmp
+  mv service.json.tmp service.json
+  touch "$STATE_ROOT/first-run"
+fi
+cat service.json > "$STATE_ROOT/observed-service.json"
 EOF
 chmod +x "$APP_ROOT/wifiman-desktopd"
 printf '{"original":true}\n' > "$APP_ROOT/service.json"
@@ -26,5 +30,6 @@ test -L "$STATE_ROOT/service.json"
 test "$(readlink "$STATE_ROOT/service.json")" = "$STATE_ROOT/app-root/service.json"
 grep -qx 'daemon-seed' "$STATE_ROOT/service.json"
 grep -qx 'daemon-seed' "$STATE_ROOT/app-root/service.json"
+grep -qx 'daemon-seed' "$STATE_ROOT/observed-service.json"
 
 echo "daemon wrapper rerun test passed"

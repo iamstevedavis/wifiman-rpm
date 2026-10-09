@@ -14,6 +14,7 @@ tests=(
   "$TEST_DIR/test-launcher-installed-rpm-smoke.sh"
   "$TEST_DIR/test-launcher-service-persistence.sh"
   "$TEST_DIR/test-daemon-service-persistence.sh"
+  "$TEST_DIR/test-shared-runtime-setup.sh"
   "$TEST_DIR/test-runtime-mirror-cleanup.sh"
   "$TEST_DIR/test-runtime-wrapper.sh"
   "$TEST_DIR/test-release-workflow.sh"

@@ -13,3 +13,7 @@ for script in "${scripts[@]}"; do
   bash -n "$script"
   test -x "$script"
 done
+
+for script in wifiman-desktop-launcher.sh wifiman-desktopd-wrapper.sh wifiman-runtime.sh; do
+  bash -n "$ROOT_DIR/scripts/$script"
+done

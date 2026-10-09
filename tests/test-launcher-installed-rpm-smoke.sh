@@ -9,7 +9,10 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 APP_ROOT="$WORK_DIR/usr/lib/wi-fiman-desktop"
 STATE_ROOT="$WORK_DIR/state-root"
 mkdir -p "$APP_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle" \
-         "$APP_ROOT/compat/libexec/webkit2gtk-4.0" "$STATE_ROOT"
+          "$APP_ROOT/compat/libexec/webkit2gtk-4.0" "$STATE_ROOT"
+mkdir -p "$WORK_DIR/usr/bin"
+install -m 0755 "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh" "$WORK_DIR/usr/bin/wifiman-desktop"
+install -m 0644 "$ROOT_DIR/scripts/wifiman-runtime.sh" "$APP_ROOT/wifiman-runtime.sh"
 
 cat > "$APP_ROOT/wi-fiman-desktop-bin" <<'EOF'
 #!/usr/bin/env bash
@@ -35,16 +38,17 @@ chmod +x "$APP_ROOT/wg_report.sh"
 printf 'wireguard-go\n' > "$APP_ROOT/wireguard-go"
 printf 'daemon\n' > "$APP_ROOT/wifiman-desktopd"
 
-# Clean newer-Fedora launch: no compat/library variables in the parent env.
+# Mock installed-layout launch: no compat/library variables in the parent env.
 env -u LD_LIBRARY_PATH -u WEBKIT_EXEC_PATH -u WEBKIT_INJECTED_BUNDLE_PATH \
     -u WEBKIT_FORCE_SANDBOX \
     APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" \
-    bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+    "$WORK_DIR/usr/bin/wifiman-desktop"
 
 RUNTIME_ROOT="$STATE_ROOT/app-root"
 
 # The compat runtime must be mirrored into the per-user runtime root.
 test -f "$RUNTIME_ROOT/compat/lib64/libwebkit2gtk.so"
+test ! -e "$RUNTIME_ROOT/wifiman-runtime.sh"
 test -f "$RUNTIME_ROOT/compat/libexec/webkit2gtk-4.0/WebKitWebProcess"
 test -f "$RUNTIME_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so"
 

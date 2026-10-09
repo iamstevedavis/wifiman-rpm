@@ -108,6 +108,14 @@ Artifacts are written to:
 ./tests/run-all.sh
 ```
 
+The RPM launcher and daemon wrapper share `scripts/wifiman-runtime.sh` for
+selective runtime mirroring, configuration persistence, and log paths. The RPM
+installs this helper under `/usr/lib/wi-fiman-desktop`; it is not mirrored into
+mutable state. The launcher retains per-user XDG state, while the daemon uses
+`/var/lib/wifiman-desktop`. Tests cover both installed wrapper locations,
+configuration recovery and persistence, and launcher compatibility exports.
+The installed-layout smoke test uses mock binaries, not a real Fedora GUI launch.
+
 ### 3) Test against a Fedora container
 
 ```bash

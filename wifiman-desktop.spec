@@ -18,6 +18,7 @@ Source2:        wifiman-desktop-launcher.sh
 Source3:        default-service.json
 Source4:        wifiman-desktopd-wrapper.sh
 Source5:        wifiman-desktop.desktop
+Source6:        wifiman-runtime.sh
 
 BuildArch:      x86_64
 BuildRequires:  desktop-file-utils
@@ -133,6 +134,7 @@ install -m 0644 staged/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtk
 install -d %{buildroot}%{_bindir}
 install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wifiman-desktop
 install -m 0755 %{SOURCE4} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
+install -m 0644 %{SOURCE6} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-runtime.sh
 
 install -d %{buildroot}%{_unitdir}
 install -m 0644 "$UPSTREAM_LIBDIR"/wifiman-desktop.service \
@@ -200,6 +202,7 @@ fi
 %{_prefix}/lib/wi-fiman-desktop/wg_report.sh
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
+%{_prefix}/lib/wi-fiman-desktop/wifiman-runtime.sh
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.service
 %{_prefix}/lib/wi-fiman-desktop/wireguard-go
 %dir %{_localstatedir}/lib/%{name}
