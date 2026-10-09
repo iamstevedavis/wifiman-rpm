@@ -10,6 +10,8 @@ tests=(
   "$TEST_DIR/test-dnf-cache-refresh.sh"
   "$TEST_DIR/test-launcher-xdg-state-home.sh"
   "$TEST_DIR/test-launcher-state-root.sh"
+  "$TEST_DIR/test-launcher-compat-env.sh"
+  "$TEST_DIR/test-launcher-installed-rpm-smoke.sh"
   "$TEST_DIR/test-launcher-service-persistence.sh"
   "$TEST_DIR/test-daemon-service-persistence.sh"
   "$TEST_DIR/test-runtime-mirror-cleanup.sh"
