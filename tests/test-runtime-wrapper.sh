@@ -5,8 +5,8 @@ ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-APP_ROOT="$WORK_DIR/app-root-src"
-STATE_ROOT="$WORK_DIR/state-root"
+APP_ROOT="$WORK_DIR/usr/lib/wi-fiman-desktop"
+STATE_ROOT="$WORK_DIR/var/lib/wifiman-desktop"
 mkdir -p "$APP_ROOT" "$STATE_ROOT"
 
 cat > "$APP_ROOT/wifiman-desktopd" <<'EOF'
@@ -17,6 +17,7 @@ printf '%s\n' "$0" > "$STATE_ROOT/argv0.txt"
 printf '%s\n' "$(readlink -f "$0")" > "$STATE_ROOT/resolved_argv0.txt"
 printf '%s\n' "${LOG_DIR:-}" > "$STATE_ROOT/log_dir.txt"
 printf '%s\n' "${LOG_PATH:-}" > "$STATE_ROOT/log_path.txt"
+printf 'daemon log\n' >> "$LOG_PATH"
 exe_dir=$(dirname "$(readlink -f "$0")")
 printf '%s\n' "$exe_dir/wg-runtime.conf" > "$STATE_ROOT/wg_conf_path.txt"
 printf 'runtime-conf\n' > "$exe_dir/wg-runtime.conf"
@@ -26,7 +27,8 @@ EOF
 chmod +x "$APP_ROOT/wifiman-desktopd"
 printf 'package-owned\n' > "$APP_ROOT/package.txt"
 printf '{"original":true}\n' > "$APP_ROOT/service.json"
-printf 'stale log\n' > "$APP_ROOT/wifiman-desktop.log"
+touch "$STATE_ROOT/wifiman-desktop.log"
+ln -s ../../../var/lib/wifiman-desktop/wifiman-desktop.log "$APP_ROOT/wifiman-desktop.log"
 printf '[Unit]\n' > "$APP_ROOT/wifiman-desktop.service"
 mkdir -p "$APP_ROOT/compat"
 printf '#!/usr/bin/env bash\n' > "$APP_ROOT/wg"
@@ -40,6 +42,7 @@ test -d "$STATE_ROOT/app-root/compat"
 test -f "$STATE_ROOT/app-root/wg"
 test ! -e "$STATE_ROOT/app-root/package.txt"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.log"
+test ! -L "$STATE_ROOT/app-root/wifiman-desktop.log"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.service"
 test ! -L "$STATE_ROOT/app-root/service.json"
 test -L "$STATE_ROOT/service.json"
@@ -52,6 +55,8 @@ grep -qx "$STATE_ROOT/app-root/wifiman-desktopd" "$STATE_ROOT/resolved_argv0.txt
 grep -qx "$STATE_ROOT/app-root/wg-runtime.conf" "$STATE_ROOT/wg_conf_path.txt"
 grep -qx "$STATE_ROOT" "$STATE_ROOT/log_dir.txt"
 grep -qx "$STATE_ROOT/wifiman-desktop.log" "$STATE_ROOT/log_path.txt"
+grep -qx 'daemon log' "$STATE_ROOT/wifiman-desktop.log"
+grep -qx 'daemon log' "$APP_ROOT/wifiman-desktop.log"
 grep -qx 'seed' "$STATE_ROOT/app-root/service.json"
 grep -qx 'seed' "$STATE_ROOT/service.json"
 grep -qx '{"original":true}' "$APP_ROOT/service.json"

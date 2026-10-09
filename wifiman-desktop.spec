@@ -116,7 +116,8 @@ install -d %{buildroot}%{_localstatedir}/lib/%{name}
 install -m 0644 %{SOURCE3} %{buildroot}%{_localstatedir}/lib/%{name}/service.json
 touch %{buildroot}%{_localstatedir}/lib/%{name}/wifiman-desktop.log
 rm -f %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
-ln -sfn %{_localstatedir}/lib/%{name}/wifiman-desktop.log %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
+# Keep the packaged compatibility link relative; wrappers use LOG_PATH in state.
+ln -sfn --relative %{buildroot}%{_localstatedir}/lib/%{name}/wifiman-desktop.log %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 
 install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
 cp -a staged/compat/lib64 %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/

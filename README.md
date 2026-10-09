@@ -116,6 +116,11 @@ mutable state. The launcher retains per-user XDG state, while the daemon uses
 configuration recovery and persistence, and launcher compatibility exports.
 The installed-layout smoke test uses mock binaries, not a real Fedora GUI launch.
 
+Daemon logs remain at `/var/lib/wifiman-desktop/wifiman-desktop.log`. The
+packaged `/usr/lib/wi-fiman-desktop/wifiman-desktop.log` compatibility symlink
+uses a relative target to avoid RPM's absolute-symlink warning. It is not
+mirrored into runtime state; both wrappers select their log file via `LOG_PATH`.
+
 ### 3) Test against a Fedora container
 
 ```bash
