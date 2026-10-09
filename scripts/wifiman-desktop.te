@@ -19,7 +19,8 @@ require {
     class rawip_socket { bind create getattr node_bind read setopt write };
 }
 
-# Current upstream daemon still writes temp/config artifacts under /usr/lib/wi-fiman-desktop
+# Legacy /usr/lib permissions: current wrappers redirect mutable state to /var/lib.
+# Retained pending an enforcing-host write audit; these rules are NOT WiFiman-scoped.
 allow init_t lib_t:dir { add_name remove_name search write };
 allow init_t lib_t:file { append create getattr open read rename setattr unlink write };
 allow init_t lib_t:sock_file write;

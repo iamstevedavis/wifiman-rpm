@@ -203,7 +203,7 @@ Enable the daemon once so SELinux has something to audit:
 sudo systemctl enable --now wifiman-desktop.service
 ```
 
-If SELinux blocks the daemon, install the bundled local policy module and merge in any recent AVC-based deltas:
+If SELinux blocks the daemon, first distinguish packaging/wrapper errors from AVC denials. **The existing base policy grants permissions to shared `init_t` and generic file labels, not just WiFiman.** Its dedicated-domain replacement is pending [issue #15](https://github.com/iamstevedavis/wifiman-rpm/issues/15). See the [scope audit and enforcing-Fedora checklist](docs/selinux-validation.md) before opting into this workaround:
 
 ```bash
 ./scripts/install-selinux-policy.sh
@@ -215,11 +215,19 @@ That helper is only needed when SELinux is enforcing and the daemon gets denied.
 - compiles the repo-managed base policy from `scripts/wifiman-desktop.te`
 - installs that policy as the `wifiman-desktop` SELinux module with priority `300`
 - checks recent audit logs for `wifiman-desktop` AVC denials
-- optionally generates and installs a second local AVC-derived module, `wifiman_desktop_local`, when `ausearch`/`audit2allow` find useful denials
+- saves AVC evidence and a draft `wifiman_desktop_local` source in a root-only directory under `/var/tmp`, **without installing it**
 - restarts `wifiman-desktop.service`
 - prints the resulting service status
 
-The helper does not change SELinux mode and does not disable enforcement. It adds local allow rules for this packaged daemon.
+The helper does not change SELinux mode or disable enforcement. Filtering audit records by process name does **not** confine an allow rule to that process. Review every source type, target type, class and permission against the reproduced failure; reject unrelated denials and shared-label broadening. Existing AVC modules are left unchanged, so review previously installed modules too.
+
+After reviewing/editing the saved source, explicitly install it (substitute the printed path):
+
+```bash
+sudo env REVIEWED_AVC_TE=/var/tmp/wifiman-selinux-review.XXXXXX/wifiman_desktop_local.te ./scripts/install-selinux-policy.sh
+```
+
+This compiles the reviewed source, not a previously generated binary module, and prints it before installation. Keep the source/evidence for the review record; remove the saved directory when no longer needed. Do not share unredacted audit logs.
 
 If you need a wider audit window, you can override the time filter:
 

@@ -15,6 +15,14 @@ mkdir -p "$BIN_DIR"
 
 export TEST_LOG="$LOG_FILE" SEMODULE_STATE="$SEMODULE_STATE"
 
+# Round-trip coverage uses explicit review authorization, never auto-generated AVCs.
+export REVIEWED_AVC_TE="$WORK_DIR/reviewed.te"
+cat > "$REVIEWED_AVC_TE" <<'EOF'
+module wifiman_desktop_local 1.0;
+require { type init_t; class tcp_socket name_connect; }
+allow init_t self:tcp_socket name_connect;
+EOF
+
 # Stateful semodule mock: installs are recorded as "<priority> <name>",
 # -lfull prints them in the real "<priority> <name> ..." shape, and -r only
 # succeeds when the module exists at the requested priority.
