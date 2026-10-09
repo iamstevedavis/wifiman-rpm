@@ -157,6 +157,8 @@ By default this removes `/var/lib/wifiman-desktop` and the current user's WiFima
 REMOVE_SELINUX_MODULES=1 ./scripts/remove-wifiman-desktop.sh
 ```
 
+That removes the two modules installed by `./scripts/install-selinux-policy.sh` — `wifiman-desktop` and `wifiman_desktop_local` — at their install priority `300`, and fails loudly if a present module cannot be removed. The installer/remover names and priority can be overridden together with the same `BASE_MODULE_NAME`, `AVC_MODULE_NAME`, and `SELINUX_MODULE_PRIORITY` variables.
+
 Build, install, and start the service in one command:
 
 ```bash

@@ -42,7 +42,9 @@ assert 'BASE_MODULE_NAME=${BASE_MODULE_NAME:-wifiman-desktop}' in text
 assert 'audit2allow -M "$AVC_MODULE_NAME"' in text
 assert 'cd "$TMP_DIR"' in text
 assert 'if [[ -f "$TMP_DIR/$AVC_MODULE_NAME.te" && -f "$TMP_DIR/$AVC_MODULE_NAME.pp" ]]' in text
-assert 'semodule -X 300 -i "$TMP_DIR/$AVC_MODULE_NAME.pp"' in text
+assert 'SELINUX_MODULE_PRIORITY=${SELINUX_MODULE_PRIORITY:-300}' in text
+assert 'semodule -X "$SELINUX_MODULE_PRIORITY" -i "$TMP_DIR/$module_name.pp"' in text
+assert 'semodule -X "$SELINUX_MODULE_PRIORITY" -i "$TMP_DIR/$AVC_MODULE_NAME.pp"' in text
 print('selinux installer structure OK')
 PY
 

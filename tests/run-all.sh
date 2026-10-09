@@ -19,6 +19,7 @@ tests=(
   "$TEST_DIR/test-release-workflow.sh"
   "$TEST_DIR/test-selinux-policy-installer.sh"
   "$TEST_DIR/test-selinux-policy-installer-mock.sh"
+  "$TEST_DIR/test-selinux-install-remove-roundtrip.sh"
   "$TEST_DIR/test-script-syntax.sh"
   "$TEST_DIR/test-spec-log-symlink.sh"
   "$TEST_DIR/test-stage-env-patch.sh"
