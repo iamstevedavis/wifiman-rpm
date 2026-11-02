@@ -14,6 +14,13 @@ grep -qx 'Exec=wifiman-desktop %U' "$DESKTOP_FILE"
 grep -qx 'Icon=wifiman-desktop' "$DESKTOP_FILE"
 grep -qx 'Categories=Network;' "$DESKTOP_FILE"
 
+# The window's app id / WM_CLASS comes from the executable name the launcher
+# runs. Without a matching StartupWMClass the taskbar shows a generic icon.
+grep -qx 'StartupWMClass=wi-fiman-desktop-bin' "$DESKTOP_FILE"
+grep -q 'RUNTIME_EXTRA_ITEMS=(wi-fiman-desktop-bin)' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+grep -q 'exec "$RUNTIME_ROOT/wi-fiman-desktop-bin"' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+grep -q "StartupWMClass=wi-fiman-desktop-bin' %{buildroot}" "$SPEC_FILE"
+
 grep -q 'Source5:        wifiman-desktop.desktop' "$SPEC_FILE"
 grep -q 'install -m 0644 %{SOURCE5}' "$SPEC_FILE"
 grep -q 'desktop-file-validate %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop' "$SPEC_FILE"

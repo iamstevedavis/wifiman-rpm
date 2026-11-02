@@ -7,5 +7,6 @@ Terminal=false
 Type=Application
 Icon=wifiman-desktop
 StartupNotify=true
+StartupWMClass=wi-fiman-desktop-bin
 Categories=Network;
 Keywords=WiFiman;Ubiquiti;UniFi;Network;Teleport;VPN;
