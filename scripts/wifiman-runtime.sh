@@ -78,6 +78,69 @@ for name in "${RUNTIME_ITEMS[@]}"; do
   sync_runtime_item "$name"
 done
 
+# wg-quick derives the tunnel MTU from the route to the peer endpoint and
+# subtracts 80. On cellular / hotspot paths the real path MTU is much lower
+# (~1190), so larger packets are silently dropped while small ones still work.
+# Cap the auto-detected MTU in the runtime copy only -- never in the packaged
+# file. An explicit MTU= in the wg config still wins because set_mtu_up()
+# returns early in that branch. WIFIMAN_WG_MTU_CAP overrides the cap and 0
+# disables it. Unrecognized wg-quick content is left untouched with a warning
+# so an upstream change cannot break the mirror.
+WG_QUICK_MTU_CAP_MARKER='WIFIMAN_WG_MTU_CAP:-'
+
+cap_wg_quick_mtu() {
+  local target=${1:-$RUNTIME_ROOT/wg-quick}
+  local default_cap=1280
+  local cap=${WIFIMAN_WG_MTU_CAP:-$default_cap}
+  local tmp mode
+
+  [[ -f "$target" ]] || return 0
+
+  if ! [[ "$cap" =~ ^[0-9]+$ ]]; then
+    printf 'wifiman-runtime: warning: ignoring invalid WIFIMAN_WG_MTU_CAP=%s (using %s)\n' \
+      "$cap" "$default_cap" >&2
+    cap=$default_cap
+  fi
+
+  # Already patched by an earlier run: leave it alone.
+  if grep -qF "$WG_QUICK_MTU_CAP_MARKER" "$target"; then
+    return 0
+  fi
+
+  # Cap disabled: keep the copied wg-quick exactly as packaged.
+  if [[ "$cap" -eq 0 ]]; then
+    return 0
+  fi
+
+  tmp=$(mktemp "$target.wifiman-mtu.XXXXXX" 2>/dev/null) || {
+    printf 'wifiman-runtime: warning: could not create a temp file to cap wg-quick MTU in %s\n' \
+      "$target" >&2
+    return 0
+  }
+
+  if awk -v cap="$cap" '
+    !patched && /cmd ip link set mtu/ && /\$\(\( mtu - 80 \)\)/ {
+      print "\tmtu=$(( mtu - 80 ))"
+      print "\t[[ ${WIFIMAN_WG_MTU_CAP:-" cap "} == 0 ]] || [[ $mtu -le ${WIFIMAN_WG_MTU_CAP:-" cap "} ]] || mtu=${WIFIMAN_WG_MTU_CAP:-" cap "}"
+      print "\tcmd ip link set mtu \"$mtu\" up dev \"$INTERFACE\""
+      patched = 1
+      next
+    }
+    { print }
+    END { exit(patched ? 0 : 1) }
+  ' "$target" > "$tmp"; then
+    mode=$(stat -c '%a' "$target" 2>/dev/null || true)
+    chmod "${mode:-0755}" "$tmp"
+    mv -f "$tmp" "$target"
+  else
+    rm -f "$tmp"
+    printf 'wifiman-runtime: warning: unexpected wg-quick content; leaving MTU uncapped in %s\n' \
+      "$target" >&2
+  fi
+}
+
+cap_wg_quick_mtu "$RUNTIME_ROOT/wg-quick"
+
 # Preserve service.json across runs, but avoid copying when source and target
 # already match. When the symlink is already valid (skip_service_sync), the
 # state file IS the runtime file — no copy or relink needed.
