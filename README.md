@@ -133,8 +133,13 @@ packets (TLS handshakes, page loads) are silently dropped while small ones
 still work. An explicit `MTU =` in the WireGuard config still wins. The
 packaged `/usr/lib/wi-fiman-desktop/wg-quick` is never modified, the patch is
 idempotent and fails soft (leaving the copy untouched with a warning) if
-upstream `wg-quick` changes. Set `WIFIMAN_WG_MTU_CAP` in the launcher/daemon
-environment to override the cap; `WIFIMAN_WG_MTU_CAP=0` disables it.
+upstream `wg-quick` changes. Set `WIFIMAN_WG_MTU_CAP` in the daemon
+environment to override the cap; `WIFIMAN_WG_MTU_CAP=0` disables it. The value
+is read when the daemon starts, so set it with a systemd drop-in:
+`sudo systemctl edit wifiman-desktop` then add
+`[Service]` / `Environment=WIFIMAN_WG_MTU_CAP=1300` and restart the service.
+Values below 1280 are raised to 1280: Linux drops IPv6 on smaller links, and
+the daemon's tunnel health check uses IPv6.
 
 ### 3) Test against a Fedora container
 

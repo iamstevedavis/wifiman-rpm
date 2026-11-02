@@ -122,8 +122,30 @@ patch_fixture "$WORK_DIR/disabled" 0
 cmp "$WORK_DIR/pristine" "$WORK_DIR/disabled"
 test "$(mtu_guard_count "$WORK_DIR/disabled")" -eq 0
 test "$(run_fixture_mtu "$WORK_DIR/disabled")" = 'ip link set mtu 1420 up dev wg0'
-# A file patched earlier must also honor a runtime cap of 0.
-test "$(WIFIMAN_WG_MTU_CAP=0 run_fixture_mtu "$WORK_DIR/wg-quick")" = 'ip link set mtu 1420 up dev wg0'
+
+# --- the patched file uses the literal cap, not the env at tunnel-up time ---
+test "$(WIFIMAN_WG_MTU_CAP=abc run_fixture_mtu "$WORK_DIR/wg-quick")" = 'ip link set mtu 1280 up dev wg0'
+if grep -q 'WIFIMAN_WG_MTU_CAP' "$WORK_DIR/wg-quick"; then
+  echo "patched wg-quick must not read WIFIMAN_WG_MTU_CAP at runtime" >&2
+  exit 1
+fi
+
+# --- an invalid override falls back to the default cap ----------------------
+cp "$WORK_DIR/pristine" "$WORK_DIR/invalid"
+patch_fixture "$WORK_DIR/invalid" abc 2> "$WORK_DIR/invalid-stderr.txt"
+grep -q 'ignoring invalid WIFIMAN_WG_MTU_CAP=abc' "$WORK_DIR/invalid-stderr.txt"
+test "$(run_fixture_mtu "$WORK_DIR/invalid")" = 'ip link set mtu 1280 up dev wg0'
+
+# --- caps below 1280 would drop IPv6 on the tunnel; clamp with a warning ---
+cp "$WORK_DIR/pristine" "$WORK_DIR/low"
+patch_fixture "$WORK_DIR/low" 1200 2> "$WORK_DIR/low-stderr.txt"
+grep -q 'below the IPv6 minimum' "$WORK_DIR/low-stderr.txt"
+test "$(run_fixture_mtu "$WORK_DIR/low")" = 'ip link set mtu 1280 up dev wg0'
+
+# --- a leading zero is decimal, not octal ---------------------------------
+cp "$WORK_DIR/pristine" "$WORK_DIR/leading-zero"
+patch_fixture "$WORK_DIR/leading-zero" 01300
+test "$(run_fixture_mtu "$WORK_DIR/leading-zero")" = 'ip link set mtu 1300 up dev wg0'
 
 # --- unrecognized content is left unmodified with a warning ----------------
 printf '#!/bin/sh\necho unexpected upstream change\n' > "$WORK_DIR/weird"

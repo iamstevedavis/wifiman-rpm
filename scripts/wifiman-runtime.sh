@@ -86,7 +86,7 @@ done
 # returns early in that branch. WIFIMAN_WG_MTU_CAP overrides the cap and 0
 # disables it. Unrecognized wg-quick content is left untouched with a warning
 # so an upstream change cannot break the mirror.
-WG_QUICK_MTU_CAP_MARKER='WIFIMAN_WG_MTU_CAP:-'
+WG_QUICK_MTU_CAP_MARKER='# wifiman: WireGuard MTU cap'
 
 cap_wg_quick_mtu() {
   local target=${1:-$RUNTIME_ROOT/wg-quick}
@@ -100,6 +100,16 @@ cap_wg_quick_mtu() {
     printf 'wifiman-runtime: warning: ignoring invalid WIFIMAN_WG_MTU_CAP=%s (using %s)\n' \
       "$cap" "$default_cap" >&2
     cap=$default_cap
+  fi
+  # Base 10, so a leading zero is not read as octal by [[ -le ]].
+  cap=$((10#$cap))
+  # Linux removes IPv6 from links below 1280, and the daemon's UDP echo
+  # check runs over IPv6 in the tunnel. A lower cap would trigger the
+  # "Too many timeouts" reconnect loop.
+  if (( cap > 0 && cap < 1280 )); then
+    printf 'wifiman-runtime: warning: WIFIMAN_WG_MTU_CAP=%s is below the IPv6 minimum (using 1280)\n' \
+      "$cap" >&2
+    cap=1280
   fi
 
   # Already patched by an earlier run: leave it alone.
@@ -118,10 +128,13 @@ cap_wg_quick_mtu() {
     return 0
   }
 
-  if awk -v cap="$cap" '
+  # Write the validated cap as a literal. Reading the env var again inside
+  # wg-quick would let an invalid value reach `ip link set mtu`. The mirror is
+  # rebuilt on every start, so a changed override still takes effect.
+  if awk -v cap="$cap" -v marker="$WG_QUICK_MTU_CAP_MARKER" '
     !patched && /cmd ip link set mtu/ && /\$\(\( mtu - 80 \)\)/ {
       print "\tmtu=$(( mtu - 80 ))"
-      print "\t[[ ${WIFIMAN_WG_MTU_CAP:-" cap "} == 0 ]] || [[ $mtu -le ${WIFIMAN_WG_MTU_CAP:-" cap "} ]] || mtu=${WIFIMAN_WG_MTU_CAP:-" cap "}"
+      print "\t[[ $mtu -le " cap " ]] || mtu=" cap "  " marker
       print "\tcmd ip link set mtu \"$mtu\" up dev \"$INTERFACE\""
       patched = 1
       next
