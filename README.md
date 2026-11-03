@@ -126,6 +126,21 @@ compatibility; public names remain `wifiman-desktop`. No path migration or clean
 reinstall is required. See the [internal path audit and decision](docs/internal-paths.md)
 for the upstream, systemd, runtime and SELinux implications.
 
+The runtime copy of `wg-quick` is patched to cap the auto-detected tunnel MTU at
+**1280** (the IPv6 minimum) instead of the route-derived value (often 1420).
+Cellular and hotspot paths commonly have a path MTU around 1190, where larger
+packets (TLS handshakes, page loads) are silently dropped while small ones
+still work. An explicit `MTU =` in the WireGuard config still wins. The
+packaged `/usr/lib/wi-fiman-desktop/wg-quick` is never modified, the patch is
+idempotent and fails soft (leaving the copy untouched with a warning) if
+upstream `wg-quick` changes. Set `WIFIMAN_WG_MTU_CAP` in the daemon
+environment to override the cap; `WIFIMAN_WG_MTU_CAP=0` disables it. The value
+is read when the daemon starts, so set it with a systemd drop-in:
+`sudo systemctl edit wifiman-desktop` then add
+`[Service]` / `Environment=WIFIMAN_WG_MTU_CAP=1300` and restart the service.
+Values below 1280 are raised to 1280: Linux drops IPv6 on smaller links, and
+the daemon's tunnel health check uses IPv6.
+
 ### 3) Test against a Fedora container
 
 ```bash
