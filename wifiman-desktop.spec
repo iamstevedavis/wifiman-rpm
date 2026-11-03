@@ -165,6 +165,7 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/wifiman-desktop.deskt
 grep -qx 'Name=WiFiman Desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'Exec=wifiman-desktop %U' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'Icon=wifiman-desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
+grep -qx 'StartupWMClass=wi-fiman-desktop-bin' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 
 %post
 %systemd_post %{name}.service
