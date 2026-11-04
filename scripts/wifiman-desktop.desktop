@@ -8,5 +8,6 @@ Type=Application
 Icon=wifiman-desktop
 StartupNotify=true
 StartupWMClass=wi-fiman-desktop-bin
+MimeType=x-scheme-handler/wifiman-desktop-dl;
 Categories=Network;
 Keywords=WiFiman;Ubiquiti;UniFi;Network;Teleport;VPN;

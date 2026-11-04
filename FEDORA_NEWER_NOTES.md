@@ -1,5 +1,10 @@
 # WiFiman Desktop on newer Fedora
 
+> **Update for 1.3.0:** upstream now links against the system WebKitGTK 4.1 /
+> libsoup3 stack, and this repo no longer stages a Fedora 40 compatibility
+> runtime. The historical notes below explain why that runtime existed; they
+> are kept for context and no longer describe the current build.
+
 ## Summary
 
 The repo currently packages WiFiman Desktop `0.3.0`, but upstream WiFiman Desktop has moved to `1.1.x` with a different Debian package layout.

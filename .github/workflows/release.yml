@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Package and upstream semantic version, for example 1.2.10'
+        description: 'Package and upstream semantic version, for example 1.3.0'
         required: false
-        default: '1.2.10'
+        default: '1.3.0'
       upstream_version:
         description: 'Upstream WiFiman Desktop version to package (defaults to version)'
         required: false
@@ -91,6 +91,8 @@ jobs:
           ## WiFiman Desktop RPM ${VERSION}-${RELEASE}
 
           Built from upstream WiFiman Desktop **${UPSTREAM_VERSION}**.
+
+Upstream 1.3.0 uses the system WebKitGTK 4.1 / libsoup3 stack, so this RPM no longer bundles a private compatibility runtime.
 
           The private app root remains \`/usr/lib/wi-fiman-desktop\` for compatibility; public names use \`wifiman-desktop\`. No internal-path migration or clean reinstall is required.
 

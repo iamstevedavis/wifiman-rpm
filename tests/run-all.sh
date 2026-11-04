@@ -11,7 +11,7 @@ tests=(
   "$TEST_DIR/test-internal-path-contract.sh"
   "$TEST_DIR/test-launcher-xdg-state-home.sh"
   "$TEST_DIR/test-launcher-state-root.sh"
-  "$TEST_DIR/test-launcher-compat-env.sh"
+  "$TEST_DIR/test-launcher-system-runtime.sh"
   "$TEST_DIR/test-launcher-installed-rpm-smoke.sh"
   "$TEST_DIR/test-launcher-service-persistence.sh"
   "$TEST_DIR/test-daemon-service-persistence.sh"
@@ -28,6 +28,7 @@ tests=(
   "$TEST_DIR/test-spec-log-symlink.sh"
   "$TEST_DIR/test-spec-net-tools.sh"
   "$TEST_DIR/test-stage-env-patch.sh"
+  "$TEST_DIR/test-upstream-1.3.sh"
 )
 
 for test_script in "${tests[@]}"; do

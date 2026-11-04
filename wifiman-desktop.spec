@@ -2,7 +2,7 @@
 %define _build_id_links none
 %define debug_package %{nil}
 
-%global app_version %{?app_version}%{!?app_version:1.2.10}
+%global app_version %{?app_version}%{!?app_version:1.3.0}
 %global app_release %{?app_release}%{!?app_release:1}
 
 Name:           wifiman-desktop
@@ -25,6 +25,10 @@ BuildRequires:  desktop-file-utils
 BuildRequires:  systemd-rpm-macros
 
 Requires:       gtk3
+Requires:       webkit2gtk4.1
+Requires:       (libayatana-appindicator3.so.1()(64bit) or libappindicator3.so.1()(64bit))
+Requires:       net-tools
+Requires:       iw
 Requires:       libX11
 Requires:       libXcomposite
 Requires:       libXcursor
@@ -48,9 +52,9 @@ Requires:       net-tools
 Requires:       dbus-x11
 
 %description
-WiFiman Desktop packaged for newer Fedora releases using an app-private
-compatibility runtime for the older WebKitGTK 4.0 / libsoup2 stack that the
-upstream 1.2.x binary still requires.
+WiFiman Desktop packaged for newer Fedora releases. Upstream 1.3.0 links
+against the system WebKitGTK 4.1 / libsoup3 stack, so this package no longer
+ships a private compatibility runtime.
 
 %prep
 %autosetup -c -T
@@ -120,19 +124,6 @@ rm -f %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 # Keep the packaged compatibility link relative; wrappers use LOG_PATH in state.
 ln -sfn --relative %{buildroot}%{_localstatedir}/lib/%{name}/wifiman-desktop.log %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
 
-install -d %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat
-cp -a staged/compat/lib64 %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
-cp -a staged/compat/libexec %{buildroot}%{_prefix}/lib/wi-fiman-desktop/compat/
-
-install -d %{buildroot}%{_libexecdir}/webkit2gtk-4.0
-install -m 0755 staged/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess \
-  %{buildroot}%{_libexecdir}/webkit2gtk-4.0/WebKitNetworkProcess
-install -m 0755 staged/compat/libexec/webkit2gtk-4.0/WebKitWebProcess \
-  %{buildroot}%{_libexecdir}/webkit2gtk-4.0/WebKitWebProcess
-install -d %{buildroot}%{_libdir}/webkit2gtk-4.0/injected-bundle
-install -m 0644 staged/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so \
-  %{buildroot}%{_libdir}/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so
-
 install -d %{buildroot}%{_bindir}
 install -m 0755 %{SOURCE2} %{buildroot}%{_bindir}/wifiman-desktop
 install -m 0755 %{SOURCE4} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
@@ -167,6 +158,7 @@ grep -qx 'Name=WiFiman Desktop' %{buildroot}%{_datadir}/applications/wifiman-des
 grep -qx 'Exec=wifiman-desktop %U' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'Icon=wifiman-desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'StartupWMClass=wi-fiman-desktop-bin' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
+grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 
 %post
 %systemd_post %{name}.service
@@ -212,18 +204,12 @@ fi
 %config(noreplace) %{_localstatedir}/lib/%{name}/service.json
 %ghost %config(noreplace) %{_localstatedir}/lib/%{name}/wifiman-desktop.log
 %{_prefix}/lib/wi-fiman-desktop/wifiman-desktop.log
-%dir %{_prefix}/lib/wi-fiman-desktop/compat
-%{_prefix}/lib/wi-fiman-desktop/compat/lib64/*
-%{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess
-%{_prefix}/lib/wi-fiman-desktop/compat/libexec/webkit2gtk-4.0/WebKitWebProcess
-%dir %{_libexecdir}/webkit2gtk-4.0
-%{_libexecdir}/webkit2gtk-4.0/WebKitNetworkProcess
-%{_libexecdir}/webkit2gtk-4.0/WebKitWebProcess
-%dir %{_libdir}/webkit2gtk-4.0
-%dir %{_libdir}/webkit2gtk-4.0/injected-bundle
-%{_libdir}/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so
 
 %changelog
+* Tue Nov 03 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.3.0-1
+- retarget packaging flow to upstream 1.3.0
+- use the system WebKitGTK 4.1 / libsoup3 stack and drop the private compat runtime
+- require webkit2gtk4.1, an AppIndicator library, net-tools, and iw
 * Mon Apr 27 2026 F.R.I.D.A.Y. <265173460+mk-friday@users.noreply.github.com> 1.2.10-1
 - add bundled SELinux policy source/installer workflow for daemon networking and runtime state
 - move mutable runtime state and seeded service.json into /var/lib/wifiman-desktop

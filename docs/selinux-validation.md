@@ -32,7 +32,7 @@ Issue #15 remains unresolved until the migration and enforcing tests below pass.
   system state need separate labels. Move network grants off `init_t`, and
   replace generic helper-file grants with rules for WiFiman state only.
 - Account for copied `wifiman-desktopd`, `wireguard-go`, `wg`, `wg-quick`, and
-  `wg_report.sh`, plus compatibility libraries. The wrapper's `cp -a` preserves
+  `wg_report.sh`. The wrapper's `cp -a` preserves
   security contexts where supported, but it also deletes and recreates runtime
   items on every start. Persistent file-context mappings alone do not label
   newly created files. Specify and test creation transitions or relabeling at

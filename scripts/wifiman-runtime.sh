@@ -8,7 +8,6 @@ RUNTIME_ITEMS=(
   .env
   .env.development
   .env.staging
-  compat
   wg
   wg-quick
   wg_report.sh

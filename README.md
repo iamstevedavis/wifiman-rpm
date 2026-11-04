@@ -8,16 +8,16 @@
 ![Architecture](https://img.shields.io/badge/arch-x86__64-blue)
 ![License](https://img.shields.io/github/license/iamstevedavis/wifiman-rpm)
 
-Fedora RPM packaging for **WiFiman Desktop 1.2.10**, with a KDE/app-menu launcher, private WebKitGTK compatibility runtime, release artifacts, and SELinux helper tooling for newer Fedora releases.
+Fedora RPM packaging for **WiFiman Desktop 1.3.0**, with a KDE/app-menu launcher, system WebKitGTK 4.1 runtime, release artifacts, and SELinux helper tooling for newer Fedora releases.
 
-The upstream app still depends on the older WebKitGTK 4.0 / libsoup2 runtime stack, so this package stages a private compatibility runtime and wraps the app with the right environment. When the upstream payload still includes its `.env`, the RPM build also suppresses the built-in updater prompt by stretching the packaged updater timing values.
+Upstream 1.3.0 links against the system WebKitGTK 4.1 / libsoup3 stack, so this package no longer stages a private compatibility runtime. When the upstream payload includes its `.env`, the RPM build also suppresses the built-in updater prompt by stretching the packaged updater timing values.
 
 ## Highlights
 
 - Downloadable versioned RPMs from GitHub Releases
 - KDE / desktop launcher named **WiFiman Desktop**
 - Terminal launcher command: `wifiman-desktop`
-- Private compatibility runtime for the older upstream WebKitGTK stack
+- System WebKitGTK 4.1 / libsoup3 runtime from Fedora
 - Optional SELinux policy helper for daemon networking denials
 - Local helper scripts for clean reinstall, launch, and debug log collection
 
@@ -29,7 +29,7 @@ Most users should install the prebuilt release RPM instead of building from sour
 2. Install it with DNF:
 
 ```bash
-sudo dnf install ./wifiman-desktop-1.2.10-1.fc40.x86_64.rpm
+sudo dnf install ./wifiman-desktop-1.3.0-1.fc40.x86_64.rpm
 ```
 
 3. Launch it from KDE / your Applications menu as **WiFiman Desktop**, or from a terminal:
@@ -44,11 +44,10 @@ The SELinux helper is **not required for installation**. Start with the RPM inst
 
 This project repackages WiFiman Desktop for Fedora users who want a native RPM install path on newer Fedora/KDE systems.
 
-- downloads upstream `wifiman-desktop-1.2.10-amd64.deb`
+- downloads upstream `wifiman-desktop-1.3.0-amd64.deb`
 - extracts the app payload
-- pulls Fedora 40 compatibility libraries for the older WebKitGTK 4.0 stack
 - stages a runnable app tree with a wrapper
-- builds an RPM from that staged tree
+- builds an RPM from that staged tree using the host WebKitGTK 4.1 stack
 
 ## Requirements
 
@@ -93,7 +92,7 @@ Artifacts are written to:
 
 ```bash
 ./scripts/stage-wifiman-fedora-newer.sh
-# defaults to upstream 1.2.10 unless UPSTREAM_VERSION is overridden
+# defaults to upstream 1.3.0 unless UPSTREAM_VERSION is overridden
 ```
 
 ### 2) Verify library resolution locally
@@ -113,7 +112,8 @@ selective runtime mirroring, configuration persistence, and log paths. The RPM
 installs this helper under `/usr/lib/wi-fiman-desktop`; it is not mirrored into
 mutable state. The launcher retains per-user XDG state, while the daemon uses
 `/var/lib/wifiman-desktop`. Tests cover both installed wrapper locations,
-configuration recovery and persistence, and launcher compatibility exports.
+configuration recovery and persistence, and the launcher runtime
+environment.
 The installed-layout smoke test uses mock binaries, not a real Fedora GUI launch.
 
 Daemon logs remain at `/var/lib/wifiman-desktop/wifiman-desktop.log`. The
@@ -166,9 +166,9 @@ The GitHub Actions release workflow builds versioned RPM artifacts and publishes
 
 The package version follows the upstream WiFiman Desktop version. The RPM release number counts packaging-only rebuilds of the same upstream version.
 
-- Push a semantic-version tag like `v1.2.10` to release upstream 1.2.10 as RPM release 1.
-- Push `vX.Y.Z-N` (e.g. `v1.2.10-2`) to ship packaging fixes on the same upstream version as RPM release `N`.
-- Or run the **release** workflow manually with `version`, `rpm_release`, and `create_release=true`. It tags the release `vVERSION-RELEASE` (e.g. `v1.2.10-2`) and fails if that tag already exists, unless `overwrite=true`. `upstream_version` defaults to `version`.
+- Push a semantic-version tag like `v1.3.0` to release upstream 1.3.0 as RPM release 1.
+- Push `vX.Y.Z-N` (e.g. `v1.3.0-2`) to ship packaging fixes on the same upstream version as RPM release `N`.
+- Or run the **release** workflow manually with `version`, `rpm_release`, and `create_release=true`. It tags the release `vVERSION-RELEASE` (e.g. `v1.3.0-2`) and fails if that tag already exists, unless `overwrite=true`. `upstream_version` defaults to `version`.
 
 Version and tag handling lives in `scripts/release-version.sh` and is covered by `tests/test-release-version.sh`.
 
@@ -271,8 +271,8 @@ SINCE=boot ./scripts/install-selinux-policy.sh
 - this packaging path currently targets `x86_64`
 - the build uses Docker internally
 - on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
-- host EGL / GLVND pieces are expected from the Fedora system rather than fully bundled into the compat runtime
-- the RPM also installs the WebKit injected bundle into the system `webkit2gtk-4.0` path expected by the upstream app
+- host EGL / GLVND and WebKitGTK 4.1 pieces are provided by the Fedora system
+- the RPM no longer installs a private WebKit injected bundle or `webkit2gtk-4.0` helper files
 - the daemon SELinux policy helper now includes a repo-managed base policy plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
 
 ## Agent / automation notes

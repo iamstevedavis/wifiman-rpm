@@ -16,18 +16,20 @@ printf 'cleanup-seed\n' > service.json.tmp
 mv service.json.tmp service.json
 EOF
 chmod +x "$APP_ROOT/wifiman-desktopd"
-mkdir -p "$APP_ROOT/compat"
 printf '#!/usr/bin/env bash\n' > "$APP_ROOT/wg"
 chmod +x "$APP_ROOT/wg"
 
+# Stale entries from older wrappers, including the removed compat runtime.
 printf 'stale\n' > "$STATE_ROOT/app-root/old-file.txt"
+mkdir -p "$STATE_ROOT/app-root/compat/lib64"
+printf 'stale compat\n' > "$STATE_ROOT/app-root/compat/lib64/libwebkit2gtk-4.0.so"
 ln -sfn /tmp/nowhere "$STATE_ROOT/app-root/wifiman-desktop.log"
 ln -sfn /tmp/nowhere "$STATE_ROOT/app-root/wifiman-desktop.service"
 
 APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktopd-wrapper.sh"
 
 test -f "$STATE_ROOT/app-root/wifiman-desktopd"
-test -d "$STATE_ROOT/app-root/compat"
+test ! -e "$STATE_ROOT/app-root/compat"
 test -f "$STATE_ROOT/app-root/wg"
 test ! -e "$STATE_ROOT/app-root/old-file.txt"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.log"

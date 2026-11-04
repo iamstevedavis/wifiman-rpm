@@ -8,9 +8,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 # Build an installed tree the way wifiman-desktop.spec lays it out.
 APP_ROOT="$WORK_DIR/usr/lib/wi-fiman-desktop"
 STATE_ROOT="$WORK_DIR/state-root"
-mkdir -p "$APP_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle" \
-          "$APP_ROOT/compat/libexec/webkit2gtk-4.0" "$STATE_ROOT"
-mkdir -p "$WORK_DIR/usr/bin"
+mkdir -p "$APP_ROOT" "$STATE_ROOT" "$WORK_DIR/usr/bin"
 install -m 0755 "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh" "$WORK_DIR/usr/bin/wifiman-desktop"
 install -m 0644 "$ROOT_DIR/scripts/wifiman-runtime.sh" "$APP_ROOT/wifiman-runtime.sh"
 
@@ -25,9 +23,6 @@ printf '%s\n' "$PWD" > "$STATE_ROOT/pwd.txt"
 EOF
 chmod +x "$APP_ROOT/wi-fiman-desktop-bin"
 
-printf 'compat-lib\n' > "$APP_ROOT/compat/lib64/libwebkit2gtk.so"
-printf 'helper\n' > "$APP_ROOT/compat/libexec/webkit2gtk-4.0/WebKitWebProcess"
-printf 'bundle\n' > "$APP_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so"
 printf '.env\n' > "$APP_ROOT/.env"
 printf '#!/bin/sh\n' > "$APP_ROOT/wg"
 chmod +x "$APP_ROOT/wg"
@@ -46,18 +41,21 @@ env -u LD_LIBRARY_PATH -u WEBKIT_EXEC_PATH -u WEBKIT_INJECTED_BUNDLE_PATH \
 
 RUNTIME_ROOT="$STATE_ROOT/app-root"
 
-# The compat runtime must be mirrored into the per-user runtime root.
-test -f "$RUNTIME_ROOT/compat/lib64/libwebkit2gtk.so"
+# Upstream 1.3.0 uses the host WebKitGTK 4.1 stack; nothing app-private is mirrored.
+test ! -e "$RUNTIME_ROOT/compat"
 test ! -e "$RUNTIME_ROOT/wifiman-runtime.sh"
-test -f "$RUNTIME_ROOT/compat/libexec/webkit2gtk-4.0/WebKitWebProcess"
-test -f "$RUNTIME_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so"
+test -f "$RUNTIME_ROOT/.env"
+test -f "$RUNTIME_ROOT/wg"
+test -f "$RUNTIME_ROOT/wg-quick"
+test -f "$RUNTIME_ROOT/wg_report.sh"
+test -f "$RUNTIME_ROOT/wireguard-go"
+test -f "$RUNTIME_ROOT/wifiman-desktopd"
 
-# The child must run from the runtime mirror and see compat paths relative to it.
+# The child must run from the runtime mirror without loader/WebKit overrides.
 grep -qx "$RUNTIME_ROOT" "$STATE_ROOT/pwd.txt"
-grep -qx "$RUNTIME_ROOT/compat/lib64" "$STATE_ROOT/ld_library_path.txt"
-grep -qx "$RUNTIME_ROOT/compat/libexec/webkit2gtk-4.0" "$STATE_ROOT/webkit_exec_path.txt"
-grep -qx "$RUNTIME_ROOT/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so" \
-  "$STATE_ROOT/webkit_injected_bundle_path.txt"
+grep -qx '' "$STATE_ROOT/ld_library_path.txt"
+grep -qx '' "$STATE_ROOT/webkit_exec_path.txt"
+grep -qx '' "$STATE_ROOT/webkit_injected_bundle_path.txt"
 grep -qx '' "$STATE_ROOT/webkit_force_sandbox.txt"
 
 echo "launcher installed-RPM smoke test passed"
