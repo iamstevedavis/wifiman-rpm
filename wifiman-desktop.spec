@@ -27,7 +27,6 @@ BuildRequires:  systemd-rpm-macros
 Requires:       gtk3
 Requires:       webkit2gtk4.1
 Requires:       (libayatana-appindicator3.so.1()(64bit) or libappindicator3.so.1()(64bit))
-Requires:       net-tools
 Requires:       iw
 Requires:       libX11
 Requires:       libXcomposite

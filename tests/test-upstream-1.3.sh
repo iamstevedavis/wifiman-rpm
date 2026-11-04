@@ -18,7 +18,7 @@ grep -q "default: '1.3.0'" "$WORKFLOW"
 # 1.3.0 links against the host WebKitGTK 4.1 stack.
 grep -q '^Requires:       webkit2gtk4.1$' "$SPEC_FILE"
 grep -q 'libayatana-appindicator3.so.1()(64bit) or libappindicator3.so.1()(64bit)' "$SPEC_FILE"
-grep -q '^Requires:       net-tools$' "$SPEC_FILE"
+# net-tools is added by the #25 fix; don't duplicate the requirement here.
 grep -q '^Requires:       iw$' "$SPEC_FILE"
 
 # The private compatibility runtime was removed.
