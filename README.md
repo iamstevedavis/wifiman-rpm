@@ -183,6 +183,43 @@ is read when the daemon starts, so set it with a systemd drop-in:
 Values below 1280 are raised to 1280: Linux drops IPv6 on smaller links, and
 the daemon's tunnel health check uses IPv6.
 
+The same runtime `wg-quick` also clamps the advertised TCP MSS while the tunnel
+is up. With the link at 1280, TCP would otherwise advertise an MSS that still
+overflows the roughly 1190-1200-byte payload of the measured hotspot path. The
+clamp adds an `iptables`/`ip6tables` mangle rule (`TCPMSS --set-mss 1140` by
+default) when the interface comes up and removes it from `del_if`, so both
+`wg-quick down` and a failed up clean it up. If `iptables` is absent, an
+`nft` `inet` table is used instead. If neither tool is installed, or a command
+fails, the clamp is skipped silently and the tunnel still comes up. Set
+`WIFIMAN_TCP_MSS_CLAMP` in the daemon environment to change the MSS;
+`WIFIMAN_TCP_MSS_CLAMP=0` disables it, independently of the MTU cap. The
+dedicated SELinux policy allows `iptables_exec_t`, and on Fedora that label
+covers `nft`, `iptables` and `ip6tables`, so no policy change is needed.
+
+Limits of the clamp, so it is not mistaken for a complete fix for #28:
+
+- It rewrites the MSS in the SYN packets this machine sends out through the
+  tunnel, which lowers what the remote end sends back. That helps downloads and
+  page loads. What this machine sends is still bounded by the 1280-byte link, so
+  large uploads on a path below about 1240 bytes of TCP payload can still stall.
+  Covering that would need a route-level `advmss` or `mtu` setting.
+- It only ever lowers the MSS (`iptables` does this natively; the `nft` rule has
+  an explicit `gt` match), so a peer that already advertises less is untouched.
+- It is on by default. An MSS of 1140 instead of the 1240 the link allows means
+  about 8% more packets on every Teleport connection, including good networks.
+  Set `WIFIMAN_TCP_MSS_CLAMP=0` if you do not need it.
+- It has not been field-tested on the hotspot path that motivated it, or on an
+  enforcing SELinux desktop (for example, `iptables` takes `/run/xtables.lock`).
+  If the clamp is denied it fails silently, so check
+  `sudo ausearch -m AVC -ts recent` and `sudo iptables -t mangle -S POSTROUTING`.
+
+Both patches apply to the runtime mirror only. The daemon wrapper changes into
+the mirror and executes the mirrored daemon; the 1.3.0 daemon resolves its
+helper paths from its own executable directory (`osext.ExecutableFolder`,
+overridable with `BASE`), so it runs `$RUNTIME_ROOT/wg-quick` rather than
+`/usr/bin/wg-quick`. That was established by inspecting the 1.3.0 daemon binary,
+not by tracing a live Teleport session.
+
 ### 3) Test against a Fedora container
 
 ```bash

@@ -21,6 +21,7 @@ tests=(
   "$TEST_DIR/test-upgrade-from-1.2.10.sh"
   "$TEST_DIR/test-runtime-wrapper.sh"
   "$TEST_DIR/test-wg-quick-mtu-cap.sh"
+  "$TEST_DIR/test-wg-quick-mss-clamp.sh"
   "$TEST_DIR/test-release-workflow.sh"
   "$TEST_DIR/test-release-version.sh"
   "$TEST_DIR/test-workflow-yaml.sh"
