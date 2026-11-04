@@ -7,7 +7,8 @@ WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 BIN_DIR="$WORK_DIR/bin"
 LOG_FILE="$WORK_DIR/tool.log"
-mkdir -p "$BIN_DIR"
+mkdir -p "$BIN_DIR" "$WORK_DIR/app-root" "$WORK_DIR/state-root"
+export APP_ROOT="$WORK_DIR/app-root" STATE_ROOT="$WORK_DIR/state-root"
 
 cat > "$BIN_DIR/checkmodule" <<'EOF'
 #!/usr/bin/env bash
@@ -127,8 +128,8 @@ if grep -q 'semodule .*wifiman_desktop_local.pp' "$LOG_FILE"; then
   exit 1
 fi
 grep -q 'systemctl restart wifiman-desktop.service' "$LOG_FILE"
-grep -q 'restorecon -R /usr/lib/wi-fiman-desktop' "$LOG_FILE"
-grep -q 'restorecon -R /var/lib/wifiman-desktop' "$LOG_FILE"
+grep -q "restorecon -R $APP_ROOT" "$LOG_FILE"
+grep -q "restorecon -R $STATE_ROOT" "$LOG_FILE"
 grep -q 'Installed SELinux base module: wifiman-desktop' "$WORK_DIR/out.txt"
 grep -q 'NOT installed' "$WORK_DIR/out.txt"
 grep -q 'shared init_t' "$WORK_DIR/out.txt"
