@@ -29,6 +29,7 @@ tests=(
   "$TEST_DIR/test-script-syntax.sh"
   "$TEST_DIR/test-spec-log-symlink.sh"
   "$TEST_DIR/test-spec-net-tools.sh"
+  "$TEST_DIR/test-stage-updater-scope-patch.sh"
   "$TEST_DIR/test-upstream-1.3.sh"
 )
 

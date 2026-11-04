@@ -63,6 +63,11 @@ if [[ -z "$UPSTREAM_BIN" ]]; then
   exit 1
 fi
 
+# The Tauri frontend checks for updates through its embedded HTTP scope. Disable
+# that scope here; the upstream .env timing values are not read by the shipped
+# binaries and do not stop the prompt.
+python3 "$ROOT_DIR/scripts/patch-wifiman-updater-scope.py" "$UPSTREAM_BIN"
+
 cat > "$STAGE_DIR/README.txt" <<EOF
 Staged WiFiman Desktop for newer Fedora.
 
