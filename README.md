@@ -40,6 +40,24 @@ wifiman-desktop
 
 The SELinux helper is **not required for installation**. Start with the RPM install and app launch above. Only run `./scripts/install-selinux-policy.sh` later if the daemon/app is blocked by SELinux denials on an enforcing Fedora system. See [SELinux policy helper](#selinux-policy-helper) for details.
 
+## Deep links (Teleport invites)
+
+WiFiman Desktop handles `wifiman-desktop-dl://` links. Starting the app once
+installs or repairs a per-user handler at
+`${XDG_DATA_HOME:-~/.local/share}/applications/wi-fiman-desktop-bin-handler.desktop`
+and makes it the default for the scheme. The handler runs `/usr/bin/wifiman-desktop`,
+so invites start through the packaged launcher instead of the raw UI binary
+that upstream's Tauri deep-link plugin registers.
+
+This is intentional and not configurable: the launcher re-asserts the managed
+handler on every start so a stale or raw handler cannot take over. If another
+application has taken the scheme, start **WiFiman Desktop** once to repair it,
+or set the managed handler manually:
+
+```bash
+xdg-mime default wi-fiman-desktop-bin-handler.desktop x-scheme-handler/wifiman-desktop-dl
+```
+
 ## What this repo does
 
 This project repackages WiFiman Desktop for Fedora users who want a native RPM install path on newer Fedora/KDE systems.

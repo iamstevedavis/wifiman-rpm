@@ -49,6 +49,7 @@ Requires:       systemd
 Requires:       wireguard-tools
 Requires:       net-tools
 Requires:       dbus-x11
+Requires:       xdg-utils
 
 %description
 WiFiman Desktop packaged for newer Fedora releases. Upstream 1.3.0 links
@@ -156,6 +157,7 @@ desktop-file-validate %{buildroot}%{_datadir}/applications/wifiman-desktop.deskt
 grep -qx 'Name=WiFiman Desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'Exec=wifiman-desktop %U' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'Icon=wifiman-desktop' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
+grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'StartupWMClass=wi-fiman-desktop-bin' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop
 

@@ -6,6 +6,7 @@ TEST_DIR="$ROOT_DIR/tests"
 
 tests=(
   "$TEST_DIR/test-daemon-wrapper-rerun.sh"
+  "$TEST_DIR/test-deep-link-handler.sh"
   "$TEST_DIR/test-desktop-entry.sh"
   "$TEST_DIR/test-dnf-cache-refresh.sh"
   "$TEST_DIR/test-internal-path-contract.sh"

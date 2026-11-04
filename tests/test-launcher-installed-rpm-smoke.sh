@@ -8,7 +8,11 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 # Build an installed tree the way wifiman-desktop.spec lays it out.
 APP_ROOT="$WORK_DIR/usr/lib/wi-fiman-desktop"
 STATE_ROOT="$WORK_DIR/state-root"
-mkdir -p "$APP_ROOT" "$STATE_ROOT" "$WORK_DIR/usr/bin"
+HOME_DIR="$WORK_DIR/home"
+XDG_DATA_DIR="$WORK_DIR/xdg-data"
+XDG_CONFIG_DIR="$WORK_DIR/xdg-config"
+mkdir -p "$APP_ROOT" "$STATE_ROOT" "$WORK_DIR/usr/bin" "$HOME_DIR" \
+  "$XDG_DATA_DIR" "$XDG_CONFIG_DIR"
 install -m 0755 "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh" "$WORK_DIR/usr/bin/wifiman-desktop"
 install -m 0644 "$ROOT_DIR/scripts/wifiman-runtime.sh" "$APP_ROOT/wifiman-runtime.sh"
 
@@ -36,6 +40,7 @@ printf 'daemon\n' > "$APP_ROOT/wifiman-desktopd"
 # Mock installed-layout launch: no compat/library variables in the parent env.
 env -u LD_LIBRARY_PATH -u WEBKIT_EXEC_PATH -u WEBKIT_INJECTED_BUNDLE_PATH \
     -u WEBKIT_FORCE_SANDBOX \
+    HOME="$HOME_DIR" XDG_DATA_HOME="$XDG_DATA_DIR" XDG_CONFIG_HOME="$XDG_CONFIG_DIR" \
     APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" \
     "$WORK_DIR/usr/bin/wifiman-desktop"
 

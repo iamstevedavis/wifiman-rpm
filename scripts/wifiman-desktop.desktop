@@ -10,4 +10,5 @@ StartupNotify=true
 StartupWMClass=wi-fiman-desktop-bin
 MimeType=x-scheme-handler/wifiman-desktop-dl;
 Categories=Network;
+MimeType=x-scheme-handler/wifiman-desktop-dl;
 Keywords=WiFiman;Ubiquiti;UniFi;Network;Teleport;VPN;

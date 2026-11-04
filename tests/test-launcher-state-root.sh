@@ -7,7 +7,9 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 
 APP_ROOT="$WORK_DIR/usr/lib/wi-fiman-desktop"
 HOME_DIR="$WORK_DIR/home"
-mkdir -p "$APP_ROOT" "$HOME_DIR"
+XDG_DATA_DIR="$WORK_DIR/xdg-data"
+XDG_CONFIG_DIR="$WORK_DIR/xdg-config"
+mkdir -p "$APP_ROOT" "$HOME_DIR" "$XDG_DATA_DIR" "$XDG_CONFIG_DIR"
 
 cat > "$APP_ROOT/wi-fiman-desktop-bin" <<'EOF'
 #!/usr/bin/env bash
@@ -36,8 +38,10 @@ printf 'should-not-be-mirrored\n' > "$APP_ROOT/compat/lib64/libwebkit2gtk-4.0.so
 printf '#!/usr/bin/env bash\n' > "$APP_ROOT/wg"
 chmod +x "$APP_ROOT/wg"
 
-HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
-HOME="$HOME_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+HOME="$HOME_DIR" XDG_DATA_HOME="$XDG_DATA_DIR" XDG_CONFIG_HOME="$XDG_CONFIG_DIR" \
+  APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+HOME="$HOME_DIR" XDG_DATA_HOME="$XDG_DATA_DIR" XDG_CONFIG_HOME="$XDG_CONFIG_DIR" \
+  APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 
 STATE_ROOT="$HOME_DIR/.local/state/wifiman-desktop"
 test -d "$STATE_ROOT/app-root"
