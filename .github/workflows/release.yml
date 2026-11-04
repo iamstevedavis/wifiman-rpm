@@ -7,62 +7,55 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Package semantic version, for example 1.2.11'
+        description: 'Package and upstream semantic version, for example 1.2.10'
         required: false
         default: '1.2.10'
       upstream_version:
-        description: 'Upstream WiFiman Desktop version to package'
+        description: 'Upstream WiFiman Desktop version to package (defaults to version)'
         required: false
-        default: '1.2.10'
+        default: ''
       rpm_release:
-        description: 'RPM release number'
+        description: 'RPM release number; bump it for packaging-only fixes (tag becomes vVERSION-RELEASE)'
         required: false
         default: '1'
       create_release:
-        description: 'Create or update a GitHub release with downloadable RPM assets'
+        description: 'Create a GitHub release with downloadable RPM assets'
         required: false
         type: boolean
         default: true
+      overwrite:
+        description: 'Replace assets on an existing release with the same tag'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ inputs.version || '1.2.10' }}
-      UPSTREAM_VERSION: ${{ inputs.upstream_version || inputs.version || '1.2.10' }}
-      RELEASE: ${{ inputs.rpm_release || '1' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Tag pushes: vX.Y.Z or vX.Y.Z-N. Manual runs tag vVERSION-RELEASE.
+      - name: Resolve release versions
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_UPSTREAM_VERSION: ${{ inputs.upstream_version }}
+          INPUT_RPM_RELEASE: ${{ inputs.rpm_release }}
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          echo "VERSION=${version}" >> "$GITHUB_ENV"
-          echo "UPSTREAM_VERSION=${version%%-*}" >> "$GITHUB_ENV"
+          ./scripts/release-version.sh | tee -a "$GITHUB_ENV"
 
-      - name: Validate semantic version
+      - name: Refuse to replace an existing release
+        if: github.event_name == 'workflow_dispatch' && inputs.create_release && !inputs.overwrite
         run: |
           set -euo pipefail
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "VERSION must be semantic version style: 1.2.11" >&2
+          if git ls-remote --exit-code --tags origin "refs/tags/${RELEASE_TAG}" >/dev/null; then
+            echo "Tag ${RELEASE_TAG} already exists. Bump rpm_release, or set overwrite=true to replace its assets." >&2
             exit 1
           fi
-
-      - name: Set release metadata
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="v${VERSION}"
-          fi
-          echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
-          echo "ASSET_PREFIX=wifiman-desktop-${VERSION}-${RELEASE}" >> "$GITHUB_ENV"
 
       - name: Install build dependencies
         run: |
@@ -140,6 +133,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
+          # Manual runs create the tag; point it at the commit that was built.
+          target_commitish: ${{ github.sha }}
           name: WiFiman Desktop RPM ${{ env.VERSION }}-${{ env.RELEASE }}
           body_path: release-notes.md
           files: dist/*
