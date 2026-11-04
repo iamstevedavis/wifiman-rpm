@@ -16,9 +16,9 @@ fi
 RUNTIME_ROOT="$STATE_ROOT/app-root"
 
 # The Tauri deep-link plugin registers its own handler on first run. Its Exec
-# points at the raw UI binary (the current executable), which skips the compat
-# LD_LIBRARY_PATH / WEBKIT_* setup above and cannot start the app. The handler
-# name is derived from the executable basename, so install our own handler
+# points at the raw UI binary (the current executable), which skips this
+# launcher's per-user state and runtime mirror setup and cannot start the app.
+# The handler name is derived from the executable basename, so install our own handler
 # under that exact name before the app starts. The app checks only whether the
 # scheme's default handler has that name and then leaves the file alone.
 DEEP_LINK_SCHEME=x-scheme-handler/wifiman-desktop-dl
