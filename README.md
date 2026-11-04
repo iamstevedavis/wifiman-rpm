@@ -10,7 +10,7 @@
 
 Fedora RPM packaging for **WiFiman Desktop 1.3.0**, with a KDE/app-menu launcher, system WebKitGTK 4.1 runtime, release artifacts, and SELinux helper tooling for newer Fedora releases.
 
-Upstream 1.3.0 links against the system WebKitGTK 4.1 / libsoup3 stack, so this package no longer stages a private compatibility runtime. When the upstream payload includes its `.env`, the RPM build also suppresses the built-in updater prompt by stretching the packaged updater timing values.
+Upstream 1.3.0 links against the system WebKitGTK 4.1 / libsoup3 stack, so this package no longer stages a private compatibility runtime. The effective in-app updater fix is tracked separately in #23.
 
 ## Highlights
 
@@ -29,7 +29,7 @@ Most users should install the prebuilt release RPM instead of building from sour
 2. Install it with DNF:
 
 ```bash
-sudo dnf install ./wifiman-desktop-1.3.0-1.fc40.x86_64.rpm
+sudo dnf install ./wifiman-desktop-1.3.0-1.fc44.x86_64.rpm
 ```
 
 3. Launch it from KDE / your Applications menu as **WiFiman Desktop**, or from a terminal:
@@ -77,7 +77,7 @@ That script now:
 
 1. rebuilds the stage by default
 2. validates the required staged files exist
-3. builds the RPM in a Fedora 40 container
+3. builds the RPM in a Fedora 44 container
 
 Artifacts are written to:
 

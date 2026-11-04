@@ -63,26 +63,6 @@ if [[ -z "$UPSTREAM_BIN" ]]; then
   exit 1
 fi
 
-UPSTREAM_ENV="$UPSTREAM_APP_DIR/.env"
-if [[ -f "$UPSTREAM_ENV" ]]; then
-  python3 - <<'PY' "$UPSTREAM_ENV"
-from pathlib import Path
-import sys
-path = Path(sys.argv[1])
-text = path.read_text()
-replacements = {
-    "UPDATER_DELAY=120000": "UPDATER_DELAY=31536000000",
-    "UPDATER_INTERVAL=43200000": "UPDATER_INTERVAL=31536000000",
-}
-for old, new in replacements.items():
-    if old in text:
-        text = text.replace(old, new)
-path.write_text(text)
-PY
-else
-  echo "warning: upstream .env not found at $UPSTREAM_ENV; skipping updater suppression patch" >&2
-fi
-
 cat > "$STAGE_DIR/README.txt" <<EOF
 Staged WiFiman Desktop for newer Fedora.
 

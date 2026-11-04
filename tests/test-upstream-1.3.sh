@@ -11,6 +11,7 @@ WORKFLOW="$ROOT_DIR/.github/workflows/release.yml"
 grep -q '^%global app_version %{?app_version}%{!?app_version:1.3.0}$' "$SPEC_FILE"
 grep -q '^UPSTREAM_VERSION=${UPSTREAM_VERSION:-1.3.0}$' "$STAGE_SCRIPT"
 grep -q '^VERSION=${VERSION:-1.3.0}$' "$BUILD_SCRIPT"
+grep -q '^FEDORA_IMAGE=${FEDORA_IMAGE:-fedora:44}$' "$BUILD_SCRIPT"
 grep -q '^DEFAULT_VERSION=1.3.0$' "$ROOT_DIR/scripts/release-version.sh"
 grep -q "default: '1.3.0'" "$WORKFLOW"
 
@@ -31,6 +32,7 @@ assert_absent() {
   fi
 }
 assert_absent 'fetch-fedora40-compat-libs.sh' "$STAGE_SCRIPT"
+assert_absent 'UPDATER_DELAY=31536000000' "$STAGE_SCRIPT"
 assert_absent 'compat/lib64' "$STAGE_SCRIPT"
 assert_absent 'compat/libexec' "$STAGE_SCRIPT"
 assert_absent '^  compat$' "$ROOT_DIR/scripts/wifiman-runtime.sh"

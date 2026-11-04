@@ -8,7 +8,7 @@ TOPDIR=${TOPDIR:-"$ROOT_DIR/.rpmbuild"}
 STAGE_DIR=${STAGE_DIR:-"$ROOT_DIR/out/wifiman-desktop-fedora-newer"}
 TARBALL="$TOPDIR/SOURCES/wifiman-desktop-${VERSION}-stage.tar.gz"
 SPEC_FILE="$ROOT_DIR/wifiman-desktop.spec"
-FEDORA_IMAGE=${FEDORA_IMAGE:-fedora:40}
+FEDORA_IMAGE=${FEDORA_IMAGE:-fedora:44}
 RESTAGE=${RESTAGE:-1}
 
 command -v docker >/dev/null
