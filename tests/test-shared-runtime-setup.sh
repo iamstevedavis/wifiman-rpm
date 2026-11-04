@@ -12,7 +12,7 @@ for mode in launcher daemon; do
     APP_ROOT="$CASE_ROOT/usr/lib/wi-fiman-desktop"
     STATE_ROOT="$CASE_ROOT/state"
     RUNTIME_ROOT="$STATE_ROOT/app-root"
-    mkdir -p "$APP_ROOT" "$RUNTIME_ROOT" "$CASE_ROOT/usr/bin"
+    mkdir -p "$APP_ROOT" "$RUNTIME_ROOT" "$CASE_ROOT/usr/bin" "$CASE_ROOT/home"
     install -m 0644 "$ROOT_DIR/scripts/wifiman-runtime.sh" "$APP_ROOT/wifiman-runtime.sh"
     if [[ "$mode" == launcher ]]; then
       binary=wi-fiman-desktop-bin
@@ -61,7 +61,7 @@ EOF
         ;;
     esac
 
-    APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" "$wrapper" --verbose 'two words'
+    HOME="$CASE_ROOT/home" APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" "$wrapper" --verbose 'two words'
     cmp "$CASE_ROOT/expected.json" "$STATE_ROOT/observed.json"
     cmp "$CASE_ROOT/expected.json" "$STATE_ROOT/service.json"
     test -L "$STATE_ROOT/service.json"

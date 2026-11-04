@@ -12,6 +12,7 @@ test -f "$DESKTOP_FILE"
 grep -qx 'Name=WiFiman Desktop' "$DESKTOP_FILE"
 grep -qx 'Exec=wifiman-desktop %U' "$DESKTOP_FILE"
 grep -qx 'Icon=wifiman-desktop' "$DESKTOP_FILE"
+grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' "$DESKTOP_FILE"
 grep -qx 'Categories=Network;' "$DESKTOP_FILE"
 
 # The window's app id / WM_CLASS comes from the executable name the launcher
@@ -25,6 +26,8 @@ grep -q "StartupWMClass=wi-fiman-desktop-bin' %{buildroot}" "$SPEC_FILE"
 grep -q 'Source5:        wifiman-desktop.desktop' "$SPEC_FILE"
 grep -q 'install -m 0644 %{SOURCE5}' "$SPEC_FILE"
 grep -q 'desktop-file-validate %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop' "$SPEC_FILE"
+grep -q "grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' %{buildroot}%{_datadir}/applications/wifiman-desktop.desktop" "$SPEC_FILE"
+grep -qx 'Requires:       xdg-utils' "$SPEC_FILE"
 grep -q 'wifiman-desktop.desktop' "$BUILD_SCRIPT"
 
 echo 'desktop entry test passed'
