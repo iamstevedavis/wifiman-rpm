@@ -15,10 +15,20 @@ grep -qx 'Icon=wifiman-desktop' "$DESKTOP_FILE"
 grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' "$DESKTOP_FILE"
 grep -qx 'Categories=Network;' "$DESKTOP_FILE"
 
+# A key may appear only once per group. desktop-file-validate rejects duplicates
+# and fails the RPM %check, so catch them here without needing the tool.
+dupes=$(grep -E '^[A-Za-z-]+(\[[^]]+\])?=' "$DESKTOP_FILE" | cut -d= -f1 | sort | uniq -d)
+if [[ -n "$dupes" ]]; then
+  echo "duplicate desktop entry keys: $dupes" >&2
+  exit 1
+fi
+if command -v desktop-file-validate >/dev/null 2>&1; then
+  desktop-file-validate "$DESKTOP_FILE"
+fi
+
 # The window's app id / WM_CLASS comes from the executable name the launcher
 # runs. Without a matching StartupWMClass the taskbar shows a generic icon.
 grep -qx 'StartupWMClass=wi-fiman-desktop-bin' "$DESKTOP_FILE"
-grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' "$DESKTOP_FILE"
 grep -qx 'UI_BINARY_NAME=wi-fiman-desktop-bin' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 grep -qx 'DEEP_LINK_HANDLER_NAME="$UI_BINARY_NAME-handler.desktop"' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 grep -qx 'RUNTIME_EXTRA_ITEMS=("$UI_BINARY_NAME")' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
