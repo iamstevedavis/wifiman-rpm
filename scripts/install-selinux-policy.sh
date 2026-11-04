@@ -123,74 +123,97 @@ restart_service() {
 }
 
 verify_dedicated_domain() {
-  local pid domain
-  sleep 1
-  pid=$(systemctl show -p MainPID --value "$SERVICE_NAME" 2>/dev/null || true)
-  if [[ -z "${pid:-}" || "$pid" == "0" ]]; then
-    echo "wifiman-desktop did not report a main PID" >&2
-    return 1
-  fi
-  domain=$(ps -o label= -p "$pid" 2>/dev/null || true)
-  if [[ "$domain" != *":$DOMAIN:"* ]]; then
-    echo "wifiman-desktop is not running as $DOMAIN (label: ${domain:-unknown})" >&2
-    return 1
-  fi
-  echo "Verified $SERVICE_NAME main PID $pid runs as $DOMAIN"
+  local pid domain attempt
+  for attempt in 1 2 3 4 5 6 7 8 9 10; do
+    pid=$(systemctl show -p MainPID --value "$SERVICE_NAME" 2>/dev/null || true)
+    if [[ -n "${pid:-}" && "$pid" != "0" ]]; then
+      domain=$(ps -o label= -p "$pid" 2>/dev/null || true)
+      if [[ -z "$domain" && -r "/proc/$pid/attr/current" ]]; then
+        { read -r domain < "/proc/$pid/attr/current"; } 2>/dev/null || true
+      fi
+      if [[ "$domain" == *":$DOMAIN:"* ]]; then
+        echo "Verified $SERVICE_NAME main PID $pid runs as $DOMAIN"
+        return 0
+      fi
+    fi
+    sleep 0.5
+  done
+  echo "wifiman-desktop did not enter $DOMAIN (last label: ${domain:-unknown})" >&2
+  return 1
 }
 
 revert_to_legacy() {
   echo "Restoring the legacy policy so the daemon is not left unconfined or broken." >&2
   stop_service
-  compile_and_install "$BASE_MODULE_NAME" "$LEGACY_TE"
-  restore_default_labels
-  restart_service || true
+  if ! compile_and_install "$BASE_MODULE_NAME" "$LEGACY_TE"; then
+    echo "ERROR: failed to compile or install the legacy policy." >&2
+    echo "The dedicated module may still be installed and the service is stopped." >&2
+    echo "Recovery: rerun with WIFIMAN_SELINUX_POLICY=legacy, or install the legacy .pp manually." >&2
+    return 1
+  fi
+  if ! restore_default_labels; then
+    echo "WARNING: legacy module installed, but restoring default file labels failed." >&2
+  fi
+  if ! restart_service; then
+    echo "WARNING: legacy module installed, but the service restart failed." >&2
+  fi
   echo "Legacy policy restored. Review the denials above and retry with WIFIMAN_SELINUX_POLICY=dedicated." >&2
 }
 
 cp "$BASE_TE" "$TMP_DIR/$BASE_MODULE_NAME.te"
-if [[ "$POLICY_VARIANT" == "dedicated" ]]; then
-  compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te" "$DEDICATED_FC"
+
+# Stop before replacing a module when switching away from dedicated. If the
+# daemon is currently wifiman_t, removing that type would leave systemd unable
+# to signal the process.
+if [[ "$POLICY_VARIANT" == "legacy" ]]; then
   stop_service
-  if ! relabel_dedicated || ! restart_service || ! verify_dedicated_domain; then
-    revert_to_legacy
-    exit 1
-  fi
-else
-  # Stop before replacing the module: if the daemon is currently wifiman_t,
-  # removing that type would leave systemd unable to signal the process.
-  stop_service
-  compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"
-  restore_default_labels
-  restart_service
 fi
 
+if [[ "$POLICY_VARIANT" == "dedicated" ]]; then
+  compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te" "$DEDICATED_FC"
+else
+  compile_and_install "$BASE_MODULE_NAME" "$TMP_DIR/$BASE_MODULE_NAME.te"
+fi
+
+# Install explicitly reviewed policy before the first restart so it can
+# address a startup denial instead of triggering the fallback path.
 if [[ -n "$REVIEWED_AVC_TE" ]]; then
   echo "Installing explicitly reviewed AVC policy source: $REVIEWED_AVC_TE"
   cat "$TMP_DIR/$AVC_MODULE_NAME.te"
   compile_and_install "$AVC_MODULE_NAME" "$TMP_DIR/$AVC_MODULE_NAME.te"
-  restart_service
-  if [[ "$POLICY_VARIANT" == "dedicated" ]] && ! verify_dedicated_domain; then
-    revert_to_legacy
+fi
+
+if [[ "$POLICY_VARIANT" == "dedicated" ]]; then
+  stop_service
+  if ! relabel_dedicated || ! restart_service || ! verify_dedicated_domain; then
+    revert_to_legacy || true
     exit 1
   fi
-elif command -v ausearch >/dev/null && command -v audit2allow >/dev/null; then
-  if ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" >/dev/null 2>&1; then
-    ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" --raw > "$TMP_DIR/avc.log"
-    audit2allow -m "$AVC_MODULE_NAME" -p /var/lib/selinux/targeted/active/policy.* < "$TMP_DIR/avc.log" > "$TMP_DIR/$AVC_MODULE_NAME.te"
-    REVIEW_DIR=$(mktemp -d /var/tmp/wifiman-selinux-review.XXXXXX)
-    cp "$TMP_DIR/avc.log" "$TMP_DIR/$AVC_MODULE_NAME.te" "$REVIEW_DIR/"
-    echo "AVC policy draft (NOT installed): $REVIEW_DIR/$AVC_MODULE_NAME.te"
-    echo "Audit evidence: $REVIEW_DIR/avc.log"
-    echo "Review every rule and its source/target labels; comm filtering does not scope SELinux permissions."
-    if [[ "$POLICY_VARIANT" == "dedicated" ]]; then
-      echo "Dedicated mode expects the source domain to be $DOMAIN; reject init_t rules."
-    fi
-    echo "After review, pass the source path using REVIEWED_AVC_TE (see README.md)."
-  else
-    echo "No SELinux AVC denials found for wifiman-desktop (since=$SINCE); installing base module only."
-  fi
 else
-  echo "ausearch/audit2allow not available; installing base module only."
+  restore_default_labels
+  restart_service
+fi
+
+if [[ -z "$REVIEWED_AVC_TE" ]]; then
+  if command -v ausearch >/dev/null && command -v audit2allow >/dev/null; then
+    if ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" >/dev/null 2>&1; then
+      ausearch -m AVC -c 'wifiman-desktop' -ts "$SINCE" --raw > "$TMP_DIR/avc.log"
+      audit2allow -m "$AVC_MODULE_NAME" -p /var/lib/selinux/targeted/active/policy.* < "$TMP_DIR/avc.log" > "$TMP_DIR/$AVC_MODULE_NAME.te"
+      REVIEW_DIR=$(mktemp -d /var/tmp/wifiman-selinux-review.XXXXXX)
+      cp "$TMP_DIR/avc.log" "$TMP_DIR/$AVC_MODULE_NAME.te" "$REVIEW_DIR/"
+      echo "AVC policy draft (NOT installed): $REVIEW_DIR/$AVC_MODULE_NAME.te"
+      echo "Audit evidence: $REVIEW_DIR/avc.log"
+      echo "Review every rule and its source/target labels; comm filtering does not scope SELinux permissions."
+      if [[ "$POLICY_VARIANT" == "dedicated" ]]; then
+        echo "Dedicated mode expects the source domain to be $DOMAIN; reject init_t rules."
+      fi
+      echo "After review, pass the source path using REVIEWED_AVC_TE (see README.md)."
+    else
+      echo "No SELinux AVC denials found for wifiman-desktop (since=$SINCE); installing base module only."
+    fi
+  else
+    echo "ausearch/audit2allow not available; installing base module only."
+  fi
 fi
 
 echo
@@ -206,6 +229,7 @@ echo "AVC review window: $SINCE"
 if [[ "$POLICY_VARIANT" == "dedicated" ]]; then
   echo "Daemon domain: $DOMAIN"
   echo "Packaged data label: wifiman_lib_t"
-  echo "Daemon state label: wifiman_var_t"
-  echo "Helper executable label: wifiman_helper_exec_t"
+  echo "Packaged helper label: wifiman_helper_exec_t"
+  echo "Runtime helper label: wifiman_runtime_exec_t"
+  echo "Daemon state/runtime data label: wifiman_var_t"
 fi

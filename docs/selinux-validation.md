@@ -17,10 +17,13 @@ The dedicated module:
   `wifiman_t`
 - grants networking to `wifiman_t` instead of the shared `init_t` domain
 - replaces writes to generic `lib_t`, `var_lib_t`, and `init_var_lib_t` with
-  WiFiman-specific `wifiman_lib_t` and `wifiman_var_t` object types
-- labels copied helpers (`wifiman-desktopd`, `wireguard-go`, `wg`, `wg-quick`,
-  `wg_report.sh`) as `wifiman_helper_exec_t`, keeping the writable state
-  directory non-executable
+  WiFiman-specific object types:
+  - `wifiman_lib_t` for the packaged tree, which is **read-only** to the daemon
+  - `wifiman_helper_exec_t` for packaged helper binaries (read-only)
+  - `wifiman_runtime_exec_t` for copied runtime helpers (writable/executable)
+  - `wifiman_var_t` for state and runtime-mirror data (writable, not executable)
+- leaves the writable runtime mirror and state non-executable except for the
+  explicitly named runtime helper files
 - leaves the desktop UI in the user's domain; only the system daemon wrapper
   transitions
 
@@ -29,6 +32,32 @@ the service and verifies that the main PID runs as `wifiman_t`. It stops the
 service before replacing the module or changing labels, because replacing the
 module while a `wifiman_t` process is running would remove that type and leave
 systemd unable to signal the process.
+
+## Permission rationale
+
+The remaining capability and process grants are intentionally small:
+
+- `net_admin` and `net_raw` are required for TUN/interface setup, raw-socket
+  discovery and WireGuard startup.
+- `fork`, `signal`, `sigchld`, `sigkill`, `signull`, `sigstop`,
+  `getattr`, `getpgid`, `getrlimit`, `getsched`, `setpgid`, `setrlimit` and
+  `setsched` cover process management and the Go runtime. `noatsecure`,
+  `rlimitinh` and `siginh` apply only to the `init_t` -> `wifiman_t`
+  transition.
+- `relabelfrom wifiman_var_t:file` and `relabelto wifiman_runtime_exec_t:file`
+  are used only by the MTU cap when it replaces `wg-quick` via a temporary
+  file and reuses the runtime `wg` helper's context. Copying does not preserve
+  package contexts in dedicated mode (`cp -a --no-preserve=context`), and the
+  packaged tree has no relabel or write grants.
+- The daemon does not receive `dac_override`, `dac_read_search`, `setuid`,
+  `setgid`, `net_bind_service`, `sys_nice`, `sys_resource`, `ipc_lock`,
+  `ipc_owner`, `kill`, `setexec`, `setcurrent`, `setfscreate`,
+  `setkeycreate`, `setsockcreate`, `setcap` or `getcap`.
+
+The local API port `127.0.0.1:63150` falls inside Fedora's `mysqld_port_t`
+range, so the policy needs that one named port type in addition to the general
+ephemeral/unreserved ranges. This is a diagnostic/API listener only; it does
+not allow the daemon to act as a database server.
 
 ## Validation performed
 
@@ -52,9 +81,19 @@ Results:
   - `/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper` -> `wifiman_exec_t`
   - packaged helpers -> `wifiman_helper_exec_t`
   - other packaged data and compatibility libraries -> `wifiman_lib_t`
-  - `/var/lib/wifiman-desktop` and state files -> `wifiman_var_t`
   - runtime helper executables (including the MTU-patched `wg-quick`) ->
-    `wifiman_helper_exec_t`
+    `wifiman_runtime_exec_t`
+  - `/var/lib/wifiman-desktop` and all other runtime/state data ->
+    `wifiman_var_t`
+- The packaged tree is read-only to `wifiman_t`; an attempted create under
+  `/usr/lib/wi-fiman-desktop` was denied. Runtime copies are made with
+  `cp -a --no-preserve=context`, so copied data stays `wifiman_var_t` and only
+  the named helpers receive `wifiman_runtime_exec_t`.
+- The pruned capability/process set (only `net_admin`, `net_raw` plus the
+  process-management permissions listed above) still starts the daemon, binds
+  the local API and sets up the WireGuard interface.
+- Reviewed AVC policy is installed before the first dedicated restart and is
+  verified by the dedicated-domain test.
 - The daemon's local API binds successfully on `127.0.0.1:63150` and listens.
   That port falls in Fedora's `mysqld_port_t` range (63132-63164), so the
   policy grants `name_bind` on `mysqld_port_t` as well as the general
@@ -71,8 +110,9 @@ Results:
   unsignalable process behind; the installer stops the service before replacing
   the module.
 - `./tests/run-all.sh` passes, including the dedicated-domain installer test,
-  offline compilation of both policy sources, fallback behavior, and the
-  existing installer/removal tests.
+  reviewed-AVC ordering, runtime copy context handling, offline compilation of
+  both policy sources, fallback behavior, and the existing installer/removal
+  tests.
 
 ## Still required before closing issue #15
 
@@ -94,6 +134,9 @@ not just a headless VM:
    `init_t` rules; the daemon should be `wifiman_t`.
 5. Confirm long-running discovery, reconnect and sleep/wake behavior does not
    accumulate denials, and attach the results to the completing PR.
+6. Re-check the policy after #36 (1.3.0). The daemon side is reported unchanged,
+   but the validation above used the 1.2.10 package and the new UI may exercise
+   different compatibility libraries.
 
 ## Legacy policy
 

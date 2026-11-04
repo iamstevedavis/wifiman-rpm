@@ -128,6 +128,7 @@ grep -q 'systemctl restart wifiman-desktop.service' "$LOG_FILE"
 grep -q 'Verified wifiman-desktop.service main PID 4242 runs as wifiman_t' "$WORK_DIR/out.txt"
 grep -q 'Installed SELinux base module: wifiman-desktop (variant: dedicated)' "$WORK_DIR/out.txt"
 grep -q 'Daemon domain: wifiman_t' "$WORK_DIR/out.txt"
+grep -q 'Runtime helper label: wifiman_runtime_exec_t' "$WORK_DIR/out.txt"
 if grep -q 'shared init_t' "$WORK_DIR/out.txt"; then
   echo 'dedicated mode must not print the legacy shared-init_t warning' >&2
   exit 1
@@ -144,7 +145,7 @@ if run_installer TEST_DOMAIN=init_t; then
   echo 'dedicated mode must fail when the daemon does not enter wifiman_t' >&2
   exit 1
 fi
-grep -q 'wifiman-desktop is not running as wifiman_t' "$WORK_DIR/out.txt"
+grep -q 'wifiman-desktop did not enter wifiman_t' "$WORK_DIR/out.txt"
 grep -q 'Restoring the legacy policy' "$WORK_DIR/out.txt"
 grep -q "checkmodule .*wifiman-desktop-legacy.te" "$LOG_FILE"
 grep -q "restorecon -R $STATE_ROOT" "$LOG_FILE"
@@ -159,7 +160,27 @@ fi
 grep -q 'Restoring the legacy policy' "$WORK_DIR/out.txt"
 grep -q "checkmodule .*wifiman-desktop-legacy.te" "$LOG_FILE"
 
-# Scenario 4: an unknown variant fails before changing policy.
+# Scenario 4: explicitly reviewed policy is installed before the first start
+# and is not regenerated from AVCs.
+reviewed_source="$WORK_DIR/reviewed.te"
+cat > "$reviewed_source" <<'EOF'
+module wifiman_desktop_local 1.0;
+require { type wifiman_t; class tcp_socket name_connect; }
+allow wifiman_t self:tcp_socket name_connect;
+EOF
+: > "$LOG_FILE"
+run_installer REVIEWED_AVC_TE="$reviewed_source"
+grep -q 'checkmodule .*wifiman_desktop_local.te' "$LOG_FILE"
+avc_line=$(grep -n 'semodule -X 300 -i .*/wifiman_desktop_local.pp' "$LOG_FILE" | cut -d: -f1)
+restart_line=$(grep -n 'systemctl restart wifiman-desktop.service' "$LOG_FILE" | head -1 | cut -d: -f1)
+[[ -n "$avc_line" && -n "$restart_line" && "$avc_line" -lt "$restart_line" ]]
+grep -q 'Installed SELinux AVC module: wifiman_desktop_local' "$WORK_DIR/out.txt"
+if grep -q '^ausearch ' "$LOG_FILE"; then
+  echo 'reviewed AVC install must not run audit generation' >&2
+  exit 1
+fi
+
+# Scenario 5: an unknown variant fails before changing policy.
 : > "$LOG_FILE"
 if env PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" \
   WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=nonsense \
@@ -174,7 +195,7 @@ if [[ -s "$LOG_FILE" ]]; then
   exit 1
 fi
 
-# Scenario 5: offline compile of both policy sources when the tools exist.
+# Scenario 6: offline compile of both policy sources when the tools exist.
 if command -v checkmodule >/dev/null && command -v semodule_package >/dev/null; then
   mkdir -p "$WORK_DIR/dedicated" "$WORK_DIR/legacy"
   checkmodule -M -m -o "$WORK_DIR/dedicated/wifiman-desktop.mod" "$DEDICATED_TE"

@@ -251,7 +251,7 @@ sudo systemctl enable --now wifiman-desktop.service
 
 If SELinux blocks the daemon, first distinguish packaging/wrapper errors from AVC denials. Two policy variants are available:
 
-- **dedicated** (default): installs the `wifiman_t` daemon domain, WiFiman-specific file labels and a systemd entry-point transition. The desktop UI stays in the user's domain. This is validated for daemon start, restart, reboot, the local API and the WireGuard helper path, but still needs interactive UI/real-VPN validation.
+- **dedicated** (default): installs the `wifiman_t` daemon domain, WiFiman-specific file labels and a systemd entry-point transition. The packaged tree is read-only; only the runtime mirror and state are writable. The desktop UI stays in the user's domain. This is validated for daemon start, restart, reboot, the local API and the WireGuard helper path, but still needs interactive UI/real-VPN validation.
 - **legacy**: grants permissions to shared `init_t` and generic file labels. It affects processes beyond WiFiman and is retained only as a rollback/fallback.
 
 Install the scoped policy:
@@ -271,7 +271,7 @@ The helper is only needed when SELinux is enforcing and the daemon gets denied. 
 - re-runs itself with `sudo` when needed
 - compiles the selected policy from `scripts/wifiman-desktop.te` (dedicated) or `scripts/wifiman-desktop-legacy.te` (legacy)
 - installs that policy as the `wifiman-desktop` SELinux module with priority `300`
-- in dedicated mode, installs `scripts/wifiman-desktop.fc`, relabels the packaged tree and runtime mirror, then verifies the daemon main PID is in `wifiman_t`
+- in dedicated mode, installs `scripts/wifiman-desktop.fc`, relabels the packaged tree and runtime mirror, installs any explicitly reviewed AVC module before the first restart, then verifies the daemon main PID is in `wifiman_t`
 - checks recent audit logs for `wifiman-desktop` AVC denials
 - saves AVC evidence and a draft `wifiman_desktop_local` source in a root-only directory under `/var/tmp`, **without installing it**
 - restarts `wifiman-desktop.service`
@@ -302,7 +302,7 @@ SINCE=boot ./scripts/install-selinux-policy.sh
 - on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
 - host EGL / GLVND and WebKitGTK 4.1 pieces are provided by the Fedora system
 - the RPM no longer installs a private WebKit injected bundle or `webkit2gtk-4.0` helper files
-- the daemon SELinux policy helper includes a dedicated `wifiman_t` policy and a legacy shared-label fallback, plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
+- the daemon SELinux policy helper includes a dedicated `wifiman_t` policy (read-only package tree, separate runtime helper labels) and a legacy shared-label fallback, plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
 
 ## Agent / automation notes
 

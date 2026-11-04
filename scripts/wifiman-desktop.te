@@ -7,11 +7,15 @@ module wifiman-desktop 1.0;
 # daemon only instead of every process in the shared init_t domain.
 #
 # Object labels:
-#   wifiman_exec_t        /usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
-#   wifiman_helper_exec_t copied daemon helpers (wifiman-desktopd, wg*,
-#                         wireguard-go) in the package tree and runtime mirror
-#   wifiman_lib_t         other packaged data and compatibility libraries
-#   wifiman_var_t         system state under /var/lib/wifiman-desktop
+#   wifiman_exec_t          /usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
+#   wifiman_helper_exec_t   packaged helpers (read-only to the daemon)
+#   wifiman_runtime_exec_t  copied helpers in the writable runtime mirror
+#   wifiman_lib_t           other packaged data and compatibility libraries
+#   wifiman_var_t           system state and runtime-mirror data
+#
+# The packaged tree is intentionally read-only to wifiman_t. Only the runtime
+# mirror and state under /var/lib/wifiman-desktop are writable. Writable state
+# is not executable; only the runtime helper files carry an executable type.
 #
 # The desktop UI is launched from the user session and deliberately has no
 # transition here; it stays in the user's domain.
@@ -22,7 +26,6 @@ require {
     attribute exec_type;
     attribute file_type;
     type init_t;
-    type var_lib_t;
     type ephemeral_port_t;
     type http_port_t;
     type mysqld_port_t;
@@ -44,7 +47,7 @@ require {
     type ifconfig_exec_t;
     type iptables_exec_t;
 
-    class capability { dac_override dac_read_search ipc_lock ipc_owner kill net_admin net_bind_service net_raw setgid setuid sys_nice sys_resource };
+    class capability { net_admin net_raw };
     class dir { add_name create getattr ioctl lock open read relabelfrom relabelto remove_name rename rmdir search setattr unlink write };
     class fd use;
     class fifo_file { append create getattr ioctl lock open read setattr unlink write };
@@ -58,7 +61,7 @@ require {
     class netlink_netfilter_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
     class netlink_route_socket { append bind connect create getattr getopt ioctl lock nlmsg_read nlmsg_write read setattr setopt shutdown write };
     class packet_socket { bind create getattr getopt ioctl read recvfrom sendto setopt write };
-    class process { fork getattr getcap getpgid getrlimit getsched getsession noatsecure rlimitinh setcap setcurrent setexec setfscreate setkeycreate setpgid setrlimit setsched setsockcreate sigchld siginh sigkill signal signull sigstop transition };
+    class process { fork getattr getpgid getrlimit getsched noatsecure rlimitinh setpgid setrlimit setsched sigchld siginh sigkill signal signull sigstop transition };
     class rawip_socket { bind create getattr getopt ioctl node_bind read recvfrom sendto setopt write };
     class sock_file { create getattr read setattr unlink write };
     class tcp_socket { accept append bind connect create getattr getopt ioctl listen lock name_bind name_connect node_bind read recv_msg send_msg setattr setopt shutdown write };
@@ -71,6 +74,7 @@ type wifiman_t, domain;
 role system_r types wifiman_t;
 type wifiman_exec_t, file_type, exec_type;
 type wifiman_helper_exec_t, file_type, exec_type;
+type wifiman_runtime_exec_t, file_type, exec_type;
 type wifiman_lib_t, file_type;
 type wifiman_var_t, file_type;
 
@@ -82,45 +86,45 @@ allow init_t wifiman_exec_t:file { execute getattr open read };
 allow wifiman_t wifiman_exec_t:file { entrypoint execute execute_no_trans getattr ioctl map open read };
 
 # ---------------------------------------------------------------------------
-# Runtime mirror under /var/lib/wifiman-desktop
+# Runtime mirror and state under /var/lib/wifiman-desktop
 # ---------------------------------------------------------------------------
 
-# Create state directories with the WiFiman-specific type even when the
-# installed top-level directory is missing or is still labelled var_lib_t.
-type_transition wifiman_t var_lib_t:dir wifiman_var_t;
+# Runtime data defaults to the writable, non-executable state type. Copied
+# helper names transition to the runnable runtime-helper type.
 type_transition wifiman_t wifiman_var_t:dir wifiman_var_t;
 type_transition wifiman_t wifiman_var_t:file wifiman_var_t;
-
-# Copied executable helpers get a helper-executable label. Keeping them out
-# of wifiman_var_t means the writable state directory is not executable.
-type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wifiman-desktopd";
-type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wg";
-type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wg-quick";
-type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wg_report.sh";
-type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wireguard-go";
+type_transition wifiman_t wifiman_var_t:file wifiman_runtime_exec_t "wifiman-desktopd";
+type_transition wifiman_t wifiman_var_t:file wifiman_runtime_exec_t "wg";
+type_transition wifiman_t wifiman_var_t:file wifiman_runtime_exec_t "wg-quick";
+type_transition wifiman_t wifiman_var_t:file wifiman_runtime_exec_t "wg_report.sh";
+type_transition wifiman_t wifiman_var_t:file wifiman_runtime_exec_t "wireguard-go";
 
 allow wifiman_t wifiman_var_t:dir { add_name create getattr ioctl lock open read remove_name rename rmdir search setattr unlink write };
 allow wifiman_t wifiman_var_t:file { append create getattr ioctl lock map open read rename setattr unlink write };
 allow wifiman_t wifiman_var_t:lnk_file { create getattr read rename setattr unlink };
 allow wifiman_t wifiman_var_t:sock_file { create getattr read setattr unlink write };
 
-# The wrapper is a shell script. It reads and re-creates the package tree
-# under app-root, including copies that keep the packaged context.
-allow wifiman_t wifiman_lib_t:dir { add_name create getattr ioctl lock open read remove_name rename rmdir search setattr unlink write };
-allow wifiman_t wifiman_lib_t:file { append create getattr ioctl lock map open read setattr unlink write };
+# The packaged tree is read-only to the daemon. The wrapper only reads these
+# files so it can recreate the runtime mirror.
+allow wifiman_t wifiman_lib_t:dir { getattr ioctl lock open read search };
+allow wifiman_t wifiman_lib_t:file { getattr ioctl lock map open read };
 allow wifiman_t wifiman_lib_t:lnk_file { getattr read };
-allow wifiman_t wifiman_lib_t:sock_file { create getattr read setattr unlink write };
-allow wifiman_t wifiman_helper_exec_t:file { append create execute execute_no_trans getattr ioctl lock map open read setattr unlink write };
-allow wifiman_t wifiman_var_t:{ file dir } relabelfrom;
-allow wifiman_t wifiman_lib_t:{ file dir } relabelto;
-allow wifiman_t wifiman_helper_exec_t:file { relabelfrom relabelto };
+allow wifiman_t wifiman_helper_exec_t:file { getattr ioctl lock map open read };
+
+# Copied helpers are writable and executable, but only under the runtime
+# mirror. The write/relabel grants are required when the MTU cap rewrites
+# wg-quick via a temporary file.
+allow wifiman_t wifiman_runtime_exec_t:file { append create execute execute_no_trans getattr ioctl lock map open read rename setattr unlink write };
+allow wifiman_t wifiman_var_t:file relabelfrom;
+allow wifiman_t wifiman_runtime_exec_t:file relabelto;
 
 # ---------------------------------------------------------------------------
 # System interfaces the daemon and its helpers use
 # ---------------------------------------------------------------------------
 
-allow wifiman_t self:capability { dac_override dac_read_search ipc_lock ipc_owner kill net_admin net_bind_service net_raw setgid setuid sys_nice sys_resource };
-allow wifiman_t self:process { fork getattr getcap getpgid getrlimit getsched getsession noatsecure rlimitinh setcap setcurrent setexec setfscreate setkeycreate setpgid setrlimit setsched setsockcreate sigchld siginh sigkill signal signull sigstop transition };
+# net_admin for TUN/interface setup and net_raw for ICMP discovery.
+allow wifiman_t self:capability { net_admin net_raw };
+allow wifiman_t self:process { fork getattr getpgid getrlimit getsched setpgid setrlimit setsched sigchld sigkill signal signull sigstop transition };
 allow wifiman_t self:fd use;
 allow wifiman_t init_t:fd use;
 allow wifiman_t init_t:unix_stream_socket { getattr ioctl read write };

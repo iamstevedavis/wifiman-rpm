@@ -18,6 +18,15 @@ RUNTIME_ITEMS=(
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
+# Under the dedicated policy the daemon may write the runtime mirror but not
+# the packaged tree. Leave copied files at the kernel-selected runtime type
+# instead of preserving the packaged read-only context. Under the legacy
+# policy the copies must keep lib_t so init_t can execute them.
+current_domain=
+{ read -r current_domain < /proc/self/attr/current; } 2>/dev/null || true
+is_wifiman_domain=0
+[[ "$current_domain" == *wifiman_t* ]] && is_wifiman_domain=1
+
 sync_runtime_item() {
   local name=$1
   local src="$APP_ROOT/$name"
@@ -25,11 +34,16 @@ sync_runtime_item() {
 
   [[ -e "$src" ]] || return 0
 
+  local -a cp_args=(-a)
+
+  if (( is_wifiman_domain )); then
+    cp_args+=(--no-preserve=context)
+  fi
+
   rm -rf "$dst"
-  # cp -a preserves the packaged mode and, where permitted, the SELinux
-  # context. Avoid an extra install(1) step: it attempts a context transition
-  # that is denied to the confined daemon and only prints a warning.
-  cp -a "$src" "$dst"
+  # Avoid an extra install(1) step: it attempts a context transition that is
+  # denied to the confined daemon and only prints a warning.
+  cp "${cp_args[@]}" "$src" "$dst"
 }
 
 # If the state file already points at the runtime copy from a prior run, the
