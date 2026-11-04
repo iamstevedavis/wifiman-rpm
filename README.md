@@ -255,6 +255,48 @@ Collect diagnostics to paste into an issue/chat:
 
 The log bundle is written to `/tmp/wifiman-debug.log` by default.
 
+### Teleport / WireGuard drop diagnostics (issue #29)
+
+When Teleport drops after minutes of working traffic, collect a read-only
+snapshot during a connected session (and again immediately after a drop):
+
+```bash
+./scripts/wifiman-teleport-diagnostics.sh
+```
+
+Run it as root (or with passwordless `sudo` available) to include the
+unprivileged parts *and* the packet capture; output then goes to `/tmp`:
+
+```bash
+sudo ./scripts/wifiman-teleport-diagnostics.sh
+```
+
+It writes a timestamped directory under
+`${XDG_STATE_HOME:-~/.local/state}/wifiman-desktop/teleport-diagnostics/`
+(or `/tmp/wifiman-teleport-diagnostics` when run as root) containing:
+
+- `wg-show.txt` — `wg show` for the tunnel interface
+- `interfaces.txt` — interface name, MTU, IPv4 and `ip -6 addr` output
+- `routes.txt` — full and per-interface IPv4/IPv6 routes
+- `networkmanager-journal.txt` and `wifiman-journal.txt` — recent journal lines
+- `firewalld-denied.txt` — denied/dropped packet lines and the `LogDenied` setting
+- `tcpdump-wg.txt` — a bounded UDP capture (200 packets / 30 s by default)
+  when `tcpdump`, `timeout` and root or passwordless `sudo` are available
+- `README.txt` — what was collected, what was skipped and why, and redaction notes
+
+Defaults are safe to share: WireGuard private and preshared keys are replaced
+with `[REDACTED]`, `endpoint:` lines are masked, and tcpdump addresses are
+masked. Raw `.pcap` output is opt-in (`--pcap`), is **not** redacted, and
+contains outer endpoint addresses. Journal lines are not fully redacted and can
+contain SSIDs, hostnames and local addresses, so review the directory before
+uploading it.
+
+Useful options: `--interface wg0`, `--lines N`, `--capture-seconds N`,
+`--capture-count N`, `--no-capture`, `--pcap`, `--no-sudo`.
+Missing tools and missing privileges are recorded in `README.txt` instead of
+failing the run. The script only reads state; it never changes network,
+firewall, service or SELinux configuration.
+
 ## SELinux policy helper
 
 The upstream daemon uses raw ICMP / raw socket operations for device discovery and related networking behavior. On Fedora with SELinux enforcing, that can trigger denials until a local policy module is installed.

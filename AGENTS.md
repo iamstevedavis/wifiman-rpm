@@ -46,6 +46,7 @@ Current coverage focuses on:
 - runtime mirror excludes junk artifacts that broke the UI
 - runtime mirror cleans stale entries
 - SELinux installer structure + mocked execution
+- Teleport diagnostics collector (stubbed tools, redaction, graceful degradation)
 
 If you fix a regression that was discovered manually, add a test that would have caught it.
 

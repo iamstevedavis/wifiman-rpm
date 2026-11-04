@@ -7,6 +7,7 @@ scripts=(
   "$ROOT_DIR/scripts/remove-wifiman-desktop.sh"
   "$ROOT_DIR/scripts/install-and-run-wifiman-desktop.sh"
   "$ROOT_DIR/scripts/collect-wifiman-debug-logs.sh"
+  "$ROOT_DIR/scripts/wifiman-teleport-diagnostics.sh"
 )
 
 for script in "${scripts[@]}"; do
