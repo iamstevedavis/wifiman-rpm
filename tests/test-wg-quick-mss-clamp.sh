@@ -182,7 +182,7 @@ run_in_fixture "$WORK_DIR/wg-quick" "$WORK_DIR/bin-nft" cmd_up
 grep -q 'nft delete table inet wifiman_mss_wg0' "$CALL_LOG"
 grep -q 'nft add table inet wifiman_mss_wg0' "$CALL_LOG"
 grep -q 'nft add chain inet wifiman_mss_wg0 postrouting' "$CALL_LOG"
-grep -q 'nft add rule inet wifiman_mss_wg0 postrouting oifname wg0 tcp flags syn tcp option maxseg size set 1140' "$CALL_LOG"
+grep -q 'nft add rule inet wifiman_mss_wg0 postrouting oifname wg0 tcp flags syn tcp option maxseg size gt 1140 tcp option maxseg size set 1140' "$CALL_LOG"
 
 run_in_fixture "$WORK_DIR/wg-quick" "$WORK_DIR/bin-nft" cmd_down
 grep -q 'nft delete table inet wifiman_mss_wg0' "$CALL_LOG"

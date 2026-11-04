@@ -272,7 +272,7 @@ wifiman_mss_clamp() {
 		nft delete table inet "$table" >/dev/null 2>&1 || true
 		if nft add table inet "$table" >/dev/null 2>&1 &&
 			nft "add chain inet $table postrouting { type filter hook postrouting priority mangle; }" >/dev/null 2>&1 &&
-			nft add rule inet "$table" postrouting oifname "$INTERFACE" tcp flags syn tcp option maxseg size set "$mss" >/dev/null 2>&1; then
+			nft add rule inet "$table" postrouting oifname "$INTERFACE" tcp flags syn tcp option maxseg size gt "$mss" tcp option maxseg size set "$mss" >/dev/null 2>&1; then
 			:
 		else
 			nft delete table inet "$table" >/dev/null 2>&1 || true

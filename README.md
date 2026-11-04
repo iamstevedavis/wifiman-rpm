@@ -196,6 +196,23 @@ fails, the clamp is skipped silently and the tunnel still comes up. Set
 dedicated SELinux policy allows `iptables_exec_t`, and on Fedora that label
 covers `nft`, `iptables` and `ip6tables`, so no policy change is needed.
 
+Limits of the clamp, so it is not mistaken for a complete fix for #28:
+
+- It rewrites the MSS in the SYN packets this machine sends out through the
+  tunnel, which lowers what the remote end sends back. That helps downloads and
+  page loads. What this machine sends is still bounded by the 1280-byte link, so
+  large uploads on a path below about 1240 bytes of TCP payload can still stall.
+  Covering that would need a route-level `advmss` or `mtu` setting.
+- It only ever lowers the MSS (`iptables` does this natively; the `nft` rule has
+  an explicit `gt` match), so a peer that already advertises less is untouched.
+- It is on by default. An MSS of 1140 instead of the 1240 the link allows means
+  about 8% more packets on every Teleport connection, including good networks.
+  Set `WIFIMAN_TCP_MSS_CLAMP=0` if you do not need it.
+- It has not been field-tested on the hotspot path that motivated it, or on an
+  enforcing SELinux desktop (for example, `iptables` takes `/run/xtables.lock`).
+  If the clamp is denied it fails silently, so check
+  `sudo ausearch -m AVC -ts recent` and `sudo iptables -t mangle -S POSTROUTING`.
+
 Both patches apply to the runtime mirror only. The daemon wrapper changes into
 the mirror and executes the mirrored daemon; the 1.3.0 daemon resolves its
 helper paths from its own executable directory (`osext.ExecutableFolder`,
