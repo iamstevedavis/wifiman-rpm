@@ -111,6 +111,12 @@ Results:
 - Switching dedicated -> legacy and legacy -> dedicated no longer leaves an
   unsignalable process behind; the installer stops the service before replacing
   the module.
+- Final VM check on 540a717: the no-relabel MTU rewrite kept `wg-quick` at
+  `wifiman_runtime_exec_t` and brought the interface up at MTU 1280 without an
+  AVC. A forced dedicated failure with a reviewed AVC module that references
+  `wifiman_t` removed that module before the legacy base was installed; the
+  resulting module list contained only the legacy base, with no unresolved-type
+  failure.
 - `./tests/run-all.sh` passes, including the dedicated-domain installer test,
   reviewed-AVC ordering, runtime copy context handling, offline compilation of
   both policy sources, fallback behavior, and the existing installer/removal
