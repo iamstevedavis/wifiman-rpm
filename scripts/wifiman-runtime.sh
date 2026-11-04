@@ -26,12 +26,10 @@ sync_runtime_item() {
   [[ -e "$src" ]] || return 0
 
   rm -rf "$dst"
-  if [[ -d "$src" ]]; then
-    cp -a "$src" "$dst"
-  else
-    install -D -m 0755 /dev/null "$dst"
-    cp -a "$src" "$dst"
-  fi
+  # cp -a preserves the packaged mode and, where permitted, the SELinux
+  # context. Avoid an extra install(1) step: it attempts a context transition
+  # that is denied to the confined daemon and only prints a warning.
+  cp -a "$src" "$dst"
 }
 
 # If the state file already points at the runtime copy from a prior run, the
@@ -144,6 +142,13 @@ cap_wg_quick_mtu() {
     mode=$(stat -c '%a' "$target" 2>/dev/null || true)
     chmod "${mode:-0755}" "$tmp"
     mv -f "$tmp" "$target"
+    # The rewrite creates a new inode, so it would otherwise inherit the
+    # writable state type and stop being executable under the dedicated
+    # SELinux policy. Reuse the packaged wg helper context; this is a no-op
+    # on hosts without SELinux tooling.
+    if command -v chcon >/dev/null 2>&1; then
+      chcon --reference="$RUNTIME_ROOT/wg" "$target" 2>/dev/null || true
+    fi
   else
     rm -f "$tmp"
     printf 'wifiman-runtime: warning: unexpected wg-quick content; leaving MTU uncapped in %s\n' \

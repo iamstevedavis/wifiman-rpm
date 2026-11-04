@@ -1,84 +1,115 @@
 # SELinux scope migration / issue #15
 
-## Status and limits
+## Status
 
-The existing base module is **not confined to WiFiman**: its `init_t` rules
-affect every process in that shared domain, and `lib_t`, `var_lib_t`, and
-`init_var_lib_t` are shared object types. Filtering audit records by `comm`
-does not narrow the resulting allow rules. The installer now saves generated
-AVC rules for review rather than installing them automatically. Supplying
-`REVIEWED_AVC_TE` explicitly authorizes compiling and installing that source.
-Existing local modules are not removed by this change; inspect them separately.
+The dedicated daemon policy in `scripts/wifiman-desktop.te` is now the default
+for `scripts/install-selinux-policy.sh`. It replaces the previous policy that
+granted networking and generic file access to the shared `init_t` domain.
 
-No enforcing Fedora reproduction or domain migration has been validated on the
-development host (Ubuntu without SELinux tooling/enforcement). Shell mocks and
-offline policy compilation cannot establish that discovery or VPN works.
-Issue #15 remains unresolved until the migration and enforcing tests below pass.
+The legacy policy is retained as `scripts/wifiman-desktop-legacy.te` for an
+explicit rollback and as the automatic fallback if the dedicated transition or
+service start fails. `scripts/wifiman-desktop.fc` installs the label mappings.
 
-## Layout audit and proposed migration
+The dedicated module:
 
-- The systemd entry point is
-  `/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper`. It creates a selective
-  runtime mirror under `/var/lib/wifiman-desktop/app-root`, changes directory
-  there, then executes the copied daemon.
-- `service.json`, `service.json.tmp`, and logs belong in system state. The
-  packaged log path is a symlink into that state. The UI uses per-user state;
-  it must not enter the system daemon's domain.
-- No explicit wrapper write targets the packaged tree. This is not evidence
-  that the opaque upstream executable never writes an absolute `/usr/lib` path.
-  Audit actual filesystem activity before removing the legacy write rules.
-- A dedicated `wifiman_t` daemon domain should transition from systemd at the
-  wrapper entry point, with a dedicated entry-point label. Packaged data and
-  system state need separate labels. Move network grants off `init_t`, and
-  replace generic helper-file grants with rules for WiFiman state only.
-- Account for copied `wifiman-desktopd`, `wireguard-go`, `wg`, `wg-quick`, and
-  `wg_report.sh`. The wrapper's `cp -a` preserves
-  security contexts where supported, but it also deletes and recreates runtime
-  items on every start. Persistent file-context mappings alone do not label
-  newly created files. Specify and test creation transitions or relabeling at
-  the correct point on **every** restart, including first creation of state.
-  Distinguish the wrapper's entry-point type from helper executable types so
-  copied helpers do not accidentally transition domains.
-- Do not permit execution of every writable state file as a shortcut. Establish
-  the minimum helper transitions, library access, capabilities, device access,
-  and network permissions from clean-state AVC evidence. Review any domain
-  transition into Fedora's `ifconfig_t`/`iptables_t` helper domains.
+- transitions only the systemd entry point
+  `/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper` from `init_t` to
+  `wifiman_t`
+- grants networking to `wifiman_t` instead of the shared `init_t` domain
+- replaces writes to generic `lib_t`, `var_lib_t`, and `init_var_lib_t` with
+  WiFiman-specific `wifiman_lib_t` and `wifiman_var_t` object types
+- labels copied helpers (`wifiman-desktopd`, `wireguard-go`, `wg`, `wg-quick`,
+  `wg_report.sh`) as `wifiman_helper_exec_t`, keeping the writable state
+  directory non-executable
+- leaves the desktop UI in the user's domain; only the system daemon wrapper
+  transitions
 
-## Enforcing Fedora validation (separate from packaging tests)
+The installer relabels the packaged tree and the runtime mirror, then restarts
+the service and verifies that the main PID runs as `wifiman_t`. It stops the
+service before replacing the module or changing labels, because replacing the
+module while a `wifiman_t` process is running would remove that type and leave
+systemd unable to signal the process.
 
-Use a disposable Fedora VM with a snapshot; do not erase production state.
-Record Fedora, package and policy versions, `getenforce`, and the installed
-local modules (`sudo semodule -lfull`). Disable/remove old local WiFiman grants
-in the test VM before reproducing; otherwise they can mask missing rules.
+## Validation performed
 
-1. Install the RPM into clean package and runtime state. Run `./tests/run-all.sh`
-   separately and record packaging/wrapper results. Check service configuration
-   with `systemctl cat wifiman-desktop.service` and confirm the log symlink.
-2. Record the audit start time, launch the UI, start/restart the daemon, exercise
-   discovery and a real Teleport/VPN session, disconnect/reconnect, and reboot.
-   Capture `sudo ausearch -m AVC,USER_AVC -ts boot --raw`, service journal, and
-   `ps -eZ`. Inspect process IDs/executable paths rather than assuming `comm`
-   uniquely identifies this daemon or includes every helper.
-3. Separate missing/broken runtime files, service config, ownership, and wrapper
-   failures from genuine SELinux denials. Inspect labels with `ls -lZ` and
-   `matchpathcon -V` on the packaged entry point, copied executables and state.
-4. Audit writes during the same actions with an appropriate tracing/audit tool
-   in the disposable VM, including absolute paths. Identify the writer and
-   destination of every attempted packaged-tree write before dropping grants.
-5. Review proposed policy source against that evidence. Reject generic file
-   write permissions and shared-domain networking grants. Document the reason
-   for each permission and helper transition; do not install raw audit2allow
-   output just because its `comm` matches WiFiman.
-6. Install the dedicated-domain policy, relabel only its owned paths, and repeat
-   all actions with enforcement on. Verify the daemon runs as `wifiman_t`, the
-   UI retains its expected domain, and labels survive restarts/reboot. Verify
-   generated `service.json.tmp` is labeled as state and copied executables have
-   their intended executable types.
-7. Use policy queries (for example `sesearch -A -s init_t -t lib_t -c file`)
-   and a before/after comparison to confirm this module adds no generic writes
-   or shared-domain network grants. Test that unrelated daemon/file types do
-   not inherit the new permissions. Check audit logs for new denials and record
-   functional results independently of the packaging suite.
+Environment: Fedora 44 Cloud VM, kernel `6.19.10-300.fc44.x86_64`,
+`selinux-policy-targeted-43.3-1.fc44`, `checkpolicy-3.11-1.fc44`,
+`setools-console-4.6.0-6.fc44`, SELinux **enforcing**, RPM
+`wifiman-desktop-1.2.10-2.fc40.x86_64`.
 
-Attach the source/label policy, AVC evidence (redact credentials/network details),
-policy queries, and action-by-action results to the PR before claiming closure.
+The live development host's policy was **not modified**. Testing was done in a
+disposable VM. The module was also compiled and installed into a copy of the
+host policy store in a container to check the real semantic link/expand path.
+
+Results:
+
+- Clean RPM install starts the daemon in `init_t` (legacy behavior).
+- `WIFIMAN_SELINUX_POLICY=dedicated` installs the module and verifies the main
+  PID runs as `wifiman_t`.
+- `ps -eZ` shows `system_u:system_r:wifiman_t:s0`; the UI binary is not
+  transitioned.
+- Labels are as intended:
+  - `/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper` -> `wifiman_exec_t`
+  - packaged helpers -> `wifiman_helper_exec_t`
+  - other packaged data and compatibility libraries -> `wifiman_lib_t`
+  - `/var/lib/wifiman-desktop` and state files -> `wifiman_var_t`
+  - runtime helper executables (including the MTU-patched `wg-quick`) ->
+    `wifiman_helper_exec_t`
+- The daemon's local API binds successfully on `127.0.0.1:63150` and listens.
+  That port falls in Fedora's `mysqld_port_t` range (63132-63164), so the
+  policy grants `name_bind` on `mysqld_port_t` as well as the general
+  ephemeral/unreserved port ranges.
+- `systemctl restart` and a full VM reboot both preserve the domain and labels;
+  no `avc: denied` records for `wifiman_t` were observed during the final
+  start/restart/reboot cycle.
+- The WireGuard helper path was exercised under `wifiman_t` with a disposable
+  test configuration: `wg-quick up` created the interface with the expected
+  MTU cap (1280), and `wg-quick down` removed it, without an AVC. This used the
+  kernel WireGuard implementation; the upstream `wireguard-go` userspace path
+  is not yet exercised in a real VPN session.
+- Switching dedicated -> legacy and legacy -> dedicated no longer leaves an
+  unsignalable process behind; the installer stops the service before replacing
+  the module.
+- `./tests/run-all.sh` passes, including the dedicated-domain installer test,
+  offline compilation of both policy sources, fallback behavior, and the
+  existing installer/removal tests.
+
+## Still required before closing issue #15
+
+The remaining items need an interactive Fedora desktop and a real VPN/profile,
+not just a headless VM:
+
+1. Launch the UI, verify discovery against real UniFi devices, and exercise a
+   real Teleport/VPN session, disconnect/reconnect, and a reboot with the UI
+   running. Record `sudo ausearch -m AVC,USER_AVC -ts boot --raw`, the service
+   journal, `ps -eZ`, and labels for the UI, daemon, helpers and state.
+2. Exercise the `wireguard-go` userspace implementation (for hosts without the
+   kernel module), not only kernel WireGuard.
+3. Audit attempted writes to `/usr/lib/wi-fiman-desktop` during UI, discovery
+   and VPN operations. Wrapper state redirection alone does not prove the
+   opaque upstream daemon never writes an absolute packaged-tree path. Keep the
+   legacy source until that audit is complete.
+4. Review any new AVC-derived rules against the reproduced failure, including
+   source/target types and permission scope. In dedicated mode, reject
+   `init_t` rules; the daemon should be `wifiman_t`.
+5. Confirm long-running discovery, reconnect and sleep/wake behavior does not
+   accumulate denials, and attach the results to the completing PR.
+
+## Legacy policy
+
+`WIFIMAN_SELINUX_POLICY=legacy` still grants permissions to shared `init_t` and
+generic `lib_t`/`var_lib_t`/`init_var_lib_t` labels. Its rules affect every
+process in those domains; filtering audit records by `comm` does not narrow the
+allow rules. The installer saves generated AVC rules for review rather than
+installing them automatically. Supplying `REVIEWED_AVC_TE` explicitly
+authorizes compiling and installing that source. Review previously installed
+local modules separately; this workflow does not change them.
+
+To roll back from dedicated mode:
+
+```bash
+sudo env WIFIMAN_SELINUX_POLICY=legacy ./scripts/install-selinux-policy.sh
+```
+
+The installer stops the service, replaces the module, restores default labels,
+restarts the service, and reports the resulting status.

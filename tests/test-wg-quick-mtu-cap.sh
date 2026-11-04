@@ -6,7 +6,16 @@ WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 HELPER="$ROOT_DIR/scripts/wifiman-runtime.sh"
-mkdir -p "$WORK_DIR/empty-app" "$WORK_DIR/state"
+mkdir -p "$WORK_DIR/empty-app" "$WORK_DIR/state" "$WORK_DIR/bin"
+CHCON_LOG="$WORK_DIR/chcon.log"
+export CHCON_LOG
+: > "$CHCON_LOG"
+cat > "$WORK_DIR/bin/chcon" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$CHCON_LOG"
+EOF
+chmod +x "$WORK_DIR/bin/chcon"
 
 # Trimmed copy of the shipped wg-quick MTU handling, including the fallback
 # that the runtime mirror patches. Keep it in sync with the real script so the
@@ -55,6 +64,8 @@ patch_fixture() {
   local fixture_path=$1 cap=${2-__unset__}
   (
     set -euo pipefail
+    PATH="$WORK_DIR/bin:$PATH"
+    export PATH
     APP_ROOT="$WORK_DIR/empty-app"
     STATE_ROOT="$WORK_DIR/state"
     RUNTIME_ROOT="$STATE_ROOT/app-root"
@@ -97,6 +108,7 @@ patch_fixture "$WORK_DIR/wg-quick"
 
 test -x "$WORK_DIR/wg-quick"
 test "$(mtu_guard_count "$WORK_DIR/wg-quick")" -eq 1
+grep -q -- '--reference=.*/app-root/wg ' "$CHCON_LOG"
 test "$(run_fixture_mtu "$WORK_DIR/wg-quick")" = 'ip link set mtu 1280 up dev wg0'
 
 # --- rerun is idempotent ---------------------------------------------------

@@ -1,47 +1,179 @@
 module wifiman-desktop 1.0;
 
+# Dedicated WiFiman daemon policy for issue #15.
+#
+# The systemd wrapper is the only entry point. Executing it transitions from
+# init_t to wifiman_t, so the network and file grants below apply to this
+# daemon only instead of every process in the shared init_t domain.
+#
+# Object labels:
+#   wifiman_exec_t        /usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper
+#   wifiman_helper_exec_t copied daemon helpers (wifiman-desktopd, wg*,
+#                         wireguard-go) in the package tree and runtime mirror
+#   wifiman_lib_t         other packaged data and compatibility libraries
+#   wifiman_var_t         system state under /var/lib/wifiman-desktop
+#
+# The desktop UI is launched from the user session and deliberately has no
+# transition here; it stays in the user's domain.
+
 require {
-    type ifconfig_t;
+    role system_r;
+    attribute domain;
+    attribute exec_type;
+    attribute file_type;
     type init_t;
-    type init_var_lib_t;
-    type iptables_t;
-    type lib_t;
     type var_lib_t;
+    type ephemeral_port_t;
     type http_port_t;
+    type mysqld_port_t;
+    type dns_port_t;
     type unreserved_port_t;
-    class dir { add_name remove_name search write };
-    class file { append create getattr ioctl open read rename setattr unlink write };
-    class fifo_file open;
-    class netlink_generic_socket { bind create getattr read setopt write };
-    class sock_file write;
-    class tcp_socket name_connect;
     type node_t;
-    class rawip_socket { bind create getattr node_bind read setopt write };
+    type netif_t;
+    type proc_t;
+    type sysfs_t;
+    type devpts_t;
+    type random_device_t;
+    type urandom_device_t;
+    type tun_tap_device_t;
+    type net_conf_t;
+    type cert_t;
+    type locale_t;
+    type bin_t;
+    type shell_exec_t;
+    type ifconfig_exec_t;
+    type iptables_exec_t;
+
+    class capability { dac_override dac_read_search ipc_lock ipc_owner kill net_admin net_bind_service net_raw setgid setuid sys_nice sys_resource };
+    class dir { add_name create getattr ioctl lock open read relabelfrom relabelto remove_name rename rmdir search setattr unlink write };
+    class fd use;
+    class fifo_file { append create getattr ioctl lock open read setattr unlink write };
+    class chr_file { getattr ioctl lock open read write };
+    class file { append create entrypoint execute execute_no_trans getattr ioctl lock map open read relabelfrom relabelto rename setattr unlink write };
+    class lnk_file { create getattr read rename setattr unlink };
+    class netif { egress ingress rawip_recv rawip_send tcp_recv tcp_send udp_recv udp_send };
+    class netlink_generic_socket { bind create getattr getopt ioctl read setopt write };
+    class netlink_firewall_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+    class netlink_kobject_uevent_socket { bind create getattr read setopt write };
+    class netlink_netfilter_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+    class netlink_route_socket { append bind connect create getattr getopt ioctl lock nlmsg_read nlmsg_write read setattr setopt shutdown write };
+    class packet_socket { bind create getattr getopt ioctl read recvfrom sendto setopt write };
+    class process { fork getattr getcap getpgid getrlimit getsched getsession noatsecure rlimitinh setcap setcurrent setexec setfscreate setkeycreate setpgid setrlimit setsched setsockcreate sigchld siginh sigkill signal signull sigstop transition };
+    class rawip_socket { bind create getattr getopt ioctl node_bind read recvfrom sendto setopt write };
+    class sock_file { create getattr read setattr unlink write };
+    class tcp_socket { accept append bind connect create getattr getopt ioctl listen lock name_bind name_connect node_bind read recv_msg send_msg setattr setopt shutdown write };
+    class udp_socket { append bind connect create getattr getopt ioctl lock name_bind node_bind read recv_msg send_msg setattr setopt shutdown write };
+    class unix_dgram_socket { append bind connect create getattr getopt ioctl lock read recvfrom send_msg sendto setattr setopt shutdown write };
+    class unix_stream_socket { accept append bind connect connectto create getattr getopt ioctl listen lock read recvfrom sendto setattr setopt shutdown write };
 }
 
-# Legacy /usr/lib permissions: current wrappers redirect mutable state to /var/lib.
-# Retained pending an enforcing-host write audit; these rules are NOT WiFiman-scoped.
-allow init_t lib_t:dir { add_name remove_name search write };
-allow init_t lib_t:file { append create getattr open read rename setattr unlink write };
-allow init_t lib_t:sock_file write;
+type wifiman_t, domain;
+role system_r types wifiman_t;
+type wifiman_exec_t, file_type, exec_type;
+type wifiman_helper_exec_t, file_type, exec_type;
+type wifiman_lib_t, file_type;
+type wifiman_var_t, file_type;
 
-# Allow runtime state/log writes under /var/lib/wifiman-desktop
-allow init_t var_lib_t:dir { add_name remove_name search write };
-allow init_t var_lib_t:file { append create getattr open read rename setattr unlink write };
-allow init_t var_lib_t:sock_file write;
-allow ifconfig_t init_var_lib_t:file { append ioctl };
-allow iptables_t init_var_lib_t:file append;
-allow iptables_t init_t:fifo_file open;
+# systemd (init_t) starts the wrapper. Only that entry point transitions.
+type_transition init_t wifiman_exec_t:process wifiman_t;
+allow init_t wifiman_t:process { transition noatsecure rlimitinh siginh };
+allow init_t wifiman_lib_t:dir { getattr search };
+allow init_t wifiman_exec_t:file { execute getattr open read };
+allow wifiman_t wifiman_exec_t:file { entrypoint execute execute_no_trans getattr ioctl map open read };
 
-# Cloud auth / AWS credential bootstrap
-allow init_t http_port_t:tcp_socket name_connect;
+# ---------------------------------------------------------------------------
+# Runtime mirror under /var/lib/wifiman-desktop
+# ---------------------------------------------------------------------------
 
-# Local UniFi gateway proxy and other high ports used by Teleport/console calls
-allow init_t unreserved_port_t:tcp_socket name_connect;
+# Create state directories with the WiFiman-specific type even when the
+# installed top-level directory is missing or is still labelled var_lib_t.
+type_transition wifiman_t var_lib_t:dir wifiman_var_t;
+type_transition wifiman_t wifiman_var_t:dir wifiman_var_t;
+type_transition wifiman_t wifiman_var_t:file wifiman_var_t;
 
-# Discovery / VPN startup touches raw IP socket options, bind paths, and node binds
-allow init_t self:rawip_socket { bind create getattr read setopt write };
-allow init_t node_t:rawip_socket node_bind;
+# Copied executable helpers get a helper-executable label. Keeping them out
+# of wifiman_var_t means the writable state directory is not executable.
+type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wifiman-desktopd";
+type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wg";
+type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wg-quick";
+type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wg_report.sh";
+type_transition wifiman_t wifiman_var_t:file wifiman_helper_exec_t "wireguard-go";
 
-# WireGuard tooling uses generic netlink sockets during interface setup
-allow init_t self:netlink_generic_socket { bind create getattr read setopt write };
+allow wifiman_t wifiman_var_t:dir { add_name create getattr ioctl lock open read remove_name rename rmdir search setattr unlink write };
+allow wifiman_t wifiman_var_t:file { append create getattr ioctl lock map open read rename setattr unlink write };
+allow wifiman_t wifiman_var_t:lnk_file { create getattr read rename setattr unlink };
+allow wifiman_t wifiman_var_t:sock_file { create getattr read setattr unlink write };
+
+# The wrapper is a shell script. It reads and re-creates the package tree
+# under app-root, including copies that keep the packaged context.
+allow wifiman_t wifiman_lib_t:dir { add_name create getattr ioctl lock open read remove_name rename rmdir search setattr unlink write };
+allow wifiman_t wifiman_lib_t:file { append create getattr ioctl lock map open read setattr unlink write };
+allow wifiman_t wifiman_lib_t:lnk_file { getattr read };
+allow wifiman_t wifiman_lib_t:sock_file { create getattr read setattr unlink write };
+allow wifiman_t wifiman_helper_exec_t:file { append create execute execute_no_trans getattr ioctl lock map open read setattr unlink write };
+allow wifiman_t wifiman_var_t:{ file dir } relabelfrom;
+allow wifiman_t wifiman_lib_t:{ file dir } relabelto;
+allow wifiman_t wifiman_helper_exec_t:file { relabelfrom relabelto };
+
+# ---------------------------------------------------------------------------
+# System interfaces the daemon and its helpers use
+# ---------------------------------------------------------------------------
+
+allow wifiman_t self:capability { dac_override dac_read_search ipc_lock ipc_owner kill net_admin net_bind_service net_raw setgid setuid sys_nice sys_resource };
+allow wifiman_t self:process { fork getattr getcap getpgid getrlimit getsched getsession noatsecure rlimitinh setcap setcurrent setexec setfscreate setkeycreate setpgid setrlimit setsched setsockcreate sigchld siginh sigkill signal signull sigstop transition };
+allow wifiman_t self:fd use;
+allow wifiman_t init_t:fd use;
+allow wifiman_t init_t:unix_stream_socket { getattr ioctl read write };
+allow wifiman_t self:fifo_file { append create getattr ioctl lock open read setattr unlink write };
+allow wifiman_t self:unix_dgram_socket { append bind connect create getattr getopt ioctl lock read recvfrom send_msg sendto setattr setopt shutdown write };
+allow wifiman_t self:unix_stream_socket { accept append bind connect connectto create getattr getopt ioctl listen lock read recvfrom sendto setattr setopt shutdown write };
+allow wifiman_t self:netlink_route_socket { append bind connect create getattr getopt ioctl lock nlmsg_read nlmsg_write read setattr setopt shutdown write };
+allow wifiman_t self:netlink_generic_socket { bind create getattr getopt ioctl read setopt write };
+allow wifiman_t self:netlink_kobject_uevent_socket { bind create getattr read setopt write };
+allow wifiman_t self:netlink_firewall_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+allow wifiman_t self:netlink_netfilter_socket { append bind connect create getattr getopt ioctl lock read setattr setopt shutdown write };
+allow wifiman_t self:packet_socket { bind create getattr getopt ioctl read recvfrom sendto setopt write };
+allow wifiman_t self:tcp_socket { accept append bind connect create getattr getopt ioctl listen lock name_bind name_connect read recv_msg send_msg setattr setopt shutdown write };
+allow wifiman_t self:udp_socket { append bind connect create getattr getopt ioctl lock name_bind read recv_msg send_msg setattr setopt shutdown write };
+allow wifiman_t self:rawip_socket { bind create getattr getopt ioctl node_bind read recvfrom sendto setopt write };
+
+allow wifiman_t netif_t:netif { egress ingress rawip_recv rawip_send tcp_recv tcp_send udp_recv udp_send };
+
+# Cloud auth (HTTPS) and local UniFi/Teleport endpoints (high ports), plus
+# DNS for name resolution.
+allow wifiman_t http_port_t:tcp_socket name_connect;
+allow wifiman_t dns_port_t:tcp_socket name_connect;
+# The upstream local API currently selects 127.0.0.1:63150, which falls
+# inside Fedora's mysqld_port_t range (63132-63164).
+allow wifiman_t mysqld_port_t:tcp_socket { name_bind name_connect };
+allow wifiman_t ephemeral_port_t:tcp_socket { name_bind name_connect };
+allow wifiman_t unreserved_port_t:tcp_socket { name_bind name_connect };
+
+# Device discovery and WireGuard startup.
+allow wifiman_t node_t:rawip_socket node_bind;
+allow wifiman_t node_t:tcp_socket node_bind;
+allow wifiman_t node_t:udp_socket node_bind;
+allow wifiman_t tun_tap_device_t:chr_file { getattr ioctl lock open read write };
+allow wifiman_t random_device_t:chr_file { getattr ioctl lock open read };
+allow wifiman_t urandom_device_t:chr_file { getattr ioctl lock open read };
+
+# Configuration, process and device metadata used by the daemon.
+allow wifiman_t proc_t:dir search;
+allow wifiman_t proc_t:file { getattr open read write };
+allow wifiman_t sysfs_t:dir search;
+allow wifiman_t sysfs_t:file { getattr open read };
+allow wifiman_t sysfs_t:lnk_file { getattr read };
+allow wifiman_t devpts_t:chr_file { getattr ioctl open read write };
+allow wifiman_t net_conf_t:file { getattr open read };
+allow wifiman_t cert_t:dir search;
+allow wifiman_t cert_t:file { getattr map open read };
+allow wifiman_t locale_t:dir search;
+allow wifiman_t locale_t:file { getattr map open read };
+
+# Programs the wrapper runs: shell/coreutils/sed/awk plus ip and iptables
+# when wg-quick brings up a tunnel. They stay in wifiman_t rather than
+# entering the shared ifconfig_t/iptables_t domains.
+allow wifiman_t bin_t:file { execute execute_no_trans getattr map open read };
+allow wifiman_t shell_exec_t:file { execute execute_no_trans getattr map open read };
+allow wifiman_t ifconfig_exec_t:file { execute execute_no_trans getattr map open read };
+allow wifiman_t iptables_exec_t:file { execute execute_no_trans getattr map open read };

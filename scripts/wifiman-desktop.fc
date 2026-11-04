@@ -1,0 +1,20 @@
+# File contexts for the dedicated WiFiman daemon domain (issue #15).
+#
+# The wrapper is the transition entry point. Copied helpers get a distinct
+# executable type; the rest of the packaged tree is read-only WiFiman data.
+/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper	--	system_u:object_r:wifiman_exec_t:s0
+/usr/lib/wi-fiman-desktop/wifiman-desktopd	--	system_u:object_r:wifiman_helper_exec_t:s0
+/usr/lib/wi-fiman-desktop/wireguard-go	--	system_u:object_r:wifiman_helper_exec_t:s0
+/usr/lib/wi-fiman-desktop/wg	--	system_u:object_r:wifiman_helper_exec_t:s0
+/usr/lib/wi-fiman-desktop/wg-quick	--	system_u:object_r:wifiman_helper_exec_t:s0
+/usr/lib/wi-fiman-desktop/wg_report.sh	--	system_u:object_r:wifiman_helper_exec_t:s0
+/usr/lib/wi-fiman-desktop(/.*)?		system_u:object_r:wifiman_lib_t:s0
+
+# System state and the runtime mirror. The runtime executables keep the
+# helper type; everything else is writable state.
+/var/lib/wifiman-desktop/app-root/wifiman-desktopd	--	system_u:object_r:wifiman_helper_exec_t:s0
+/var/lib/wifiman-desktop/app-root/wireguard-go	--	system_u:object_r:wifiman_helper_exec_t:s0
+/var/lib/wifiman-desktop/app-root/wg	--	system_u:object_r:wifiman_helper_exec_t:s0
+/var/lib/wifiman-desktop/app-root/wg-quick	--	system_u:object_r:wifiman_helper_exec_t:s0
+/var/lib/wifiman-desktop/app-root/wg_report.sh	--	system_u:object_r:wifiman_helper_exec_t:s0
+/var/lib/wifiman-desktop(/.*)?		system_u:object_r:wifiman_var_t:s0
