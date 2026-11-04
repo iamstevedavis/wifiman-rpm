@@ -142,9 +142,26 @@ verify_dedicated_domain() {
   return 1
 }
 
+module_installed() {
+  semodule -lfull 2>/dev/null |
+    awk -v prio="$SELINUX_MODULE_PRIORITY" -v name="$1" \
+      '$1 == prio && $2 == name { found = 1 } END { exit found ? 0 : 1 }'
+}
+
 revert_to_legacy() {
   echo "Restoring the legacy policy so the daemon is not left unconfined or broken." >&2
   stop_service
+  # A reviewed module may reference wifiman_t. The legacy base does not
+  # define that type, so remove the dependent module before replacing the
+  # base or policy linking fails and leaves the service stopped.
+  if [[ -n "$REVIEWED_AVC_TE" ]] && module_installed "$AVC_MODULE_NAME"; then
+    echo "Removing reviewed AVC module $AVC_MODULE_NAME before restoring legacy policy." >&2
+    if ! semodule -X "$SELINUX_MODULE_PRIORITY" -r "$AVC_MODULE_NAME"; then
+      echo "ERROR: failed to remove reviewed AVC module $AVC_MODULE_NAME." >&2
+      echo "Recovery: remove it with: semodule -X $SELINUX_MODULE_PRIORITY -r $AVC_MODULE_NAME" >&2
+      return 1
+    fi
+  fi
   if ! compile_and_install "$BASE_MODULE_NAME" "$LEGACY_TE"; then
     echo "ERROR: failed to compile or install the legacy policy." >&2
     echo "The dedicated module may still be installed and the service is stopped." >&2

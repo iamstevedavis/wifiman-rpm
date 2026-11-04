@@ -108,7 +108,7 @@ patch_fixture "$WORK_DIR/wg-quick"
 
 test -x "$WORK_DIR/wg-quick"
 test "$(mtu_guard_count "$WORK_DIR/wg-quick")" -eq 1
-grep -q -- '--reference=.*/app-root/wg ' "$CHCON_LOG"
+test ! -s "$CHCON_LOG"
 test "$(run_fixture_mtu "$WORK_DIR/wg-quick")" = 'ip link set mtu 1280 up dev wg0'
 
 # --- rerun is idempotent ---------------------------------------------------

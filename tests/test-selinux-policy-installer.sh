@@ -46,6 +46,10 @@ if grep -Eq '^allow init_t .*:tcp_socket|^allow init_t .*:rawip_socket|^allow in
   exit 1
 fi
 
+if grep -q 'relabel' "$DEDICATED_TE"; then
+  echo 'dedicated policy should not grant relabel permissions' >&2
+  exit 1
+fi
 # The package tree must stay read-only and the capability/process set must
 # stay limited to what the daemon and its helpers actually use.
 if grep -Eq '^allow wifiman_t wifiman_lib_t:(file|dir).*\b(write|create|unlink|relabelto)\b' "$DEDICATED_TE"; then
@@ -62,6 +66,19 @@ for perm in dac_override dac_read_search setuid setgid net_bind_service ipc_owne
     exit 1
   fi
 done
+
+# Only the named helper files may receive the runtime-executable type.
+runtime_transitions=$(grep -oE 'type_transition wifiman_t wifiman_var_t:file wifiman_runtime_exec_t "[^"]+"' "$DEDICATED_TE" | sed -E 's/.*"([^"]+)"/\1/' | sort)
+expected_transitions=$(printf '%s\n' wifiman-desktopd wg wg-quick wg_report.sh wireguard-go | sort)
+if [[ "$runtime_transitions" != "$expected_transitions" ]]; then
+  echo 'unexpected runtime-executable filename transitions:' >&2
+  printf '%s\n' "$runtime_transitions" >&2
+  exit 1
+fi
+if grep -E 'wifiman_runtime_exec_t' "$FC_FILE" | grep -Eq '\(/\.\*\)\?|\*'; then
+  echo 'runtime executable labels must not use wildcard file contexts' >&2
+  exit 1
+fi
 
 # File contexts map the entry point, helpers, packaged data and state.
 grep -q '^/usr/lib/wi-fiman-desktop/wifiman-desktopd-wrapper.*wifiman_exec_t' "$FC_FILE"

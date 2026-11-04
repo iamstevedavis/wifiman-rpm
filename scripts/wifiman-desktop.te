@@ -48,11 +48,11 @@ require {
     type iptables_exec_t;
 
     class capability { net_admin net_raw };
-    class dir { add_name create getattr ioctl lock open read relabelfrom relabelto remove_name rename rmdir search setattr unlink write };
+    class dir { add_name create getattr ioctl lock open read remove_name rename rmdir search setattr unlink write };
     class fd use;
     class fifo_file { append create getattr ioctl lock open read setattr unlink write };
     class chr_file { getattr ioctl lock open read write };
-    class file { append create entrypoint execute execute_no_trans getattr ioctl lock map open read relabelfrom relabelto rename setattr unlink write };
+    class file { append create entrypoint execute execute_no_trans getattr ioctl lock map open read rename setattr unlink write };
     class lnk_file { create getattr read rename setattr unlink };
     class netif { egress ingress rawip_recv rawip_send tcp_recv tcp_send udp_recv udp_send };
     class netlink_generic_socket { bind create getattr getopt ioctl read setopt write };
@@ -112,11 +112,9 @@ allow wifiman_t wifiman_lib_t:lnk_file { getattr read };
 allow wifiman_t wifiman_helper_exec_t:file { getattr ioctl lock map open read };
 
 # Copied helpers are writable and executable, but only under the runtime
-# mirror. The write/relabel grants are required when the MTU cap rewrites
-# wg-quick via a temporary file.
+# mirror. Only the named helper files receive this type via filename
+# transitions; writable state remains non-executable.
 allow wifiman_t wifiman_runtime_exec_t:file { append create execute execute_no_trans getattr ioctl lock map open read rename setattr unlink write };
-allow wifiman_t wifiman_var_t:file relabelfrom;
-allow wifiman_t wifiman_runtime_exec_t:file relabelto;
 
 # ---------------------------------------------------------------------------
 # System interfaces the daemon and its helpers use

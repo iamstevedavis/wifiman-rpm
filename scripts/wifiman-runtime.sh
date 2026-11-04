@@ -154,15 +154,13 @@ cap_wg_quick_mtu() {
     END { exit(patched ? 0 : 1) }
   ' "$target" > "$tmp"; then
     mode=$(stat -c '%a' "$target" 2>/dev/null || true)
-    chmod "${mode:-0755}" "$tmp"
-    mv -f "$tmp" "$target"
-    # The rewrite creates a new inode, so it would otherwise inherit the
-    # writable state type and stop being executable under the dedicated
-    # SELinux policy. Reuse the packaged wg helper context; this is a no-op
-    # on hosts without SELinux tooling.
-    if command -v chcon >/dev/null 2>&1; then
-      chcon --reference="$RUNTIME_ROOT/wg" "$target" 2>/dev/null || true
-    fi
+    # Write through the existing target so it keeps its runtime-helper label
+    # (or receives the helper filename transition if it has to be created).
+    # Replacing it with mv would create a writable-state inode and require a
+    # relabel grant.
+    cat "$tmp" > "$target"
+    rm -f "$tmp"
+    chmod "${mode:-0755}" "$target"
   else
     rm -f "$tmp"
     printf 'wifiman-runtime: warning: unexpected wg-quick content; leaving MTU uncapped in %s\n' \

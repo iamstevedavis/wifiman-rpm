@@ -44,11 +44,10 @@ The remaining capability and process grants are intentionally small:
   `setsched` cover process management and the Go runtime. `noatsecure`,
   `rlimitinh` and `siginh` apply only to the `init_t` -> `wifiman_t`
   transition.
-- `relabelfrom wifiman_var_t:file` and `relabelto wifiman_runtime_exec_t:file`
-  are used only by the MTU cap when it replaces `wg-quick` via a temporary
-  file and reuses the runtime `wg` helper's context. Copying does not preserve
-  package contexts in dedicated mode (`cp -a --no-preserve=context`), and the
-  packaged tree has no relabel or write grants.
+- There are no SELinux relabel grants. Copying does not preserve package
+  contexts in dedicated mode (`cp -a --no-preserve=context`), and the MTU cap
+  writes the patched content through the existing runtime `wg-quick` inode so
+  it keeps `wifiman_runtime_exec_t` instead of creating a new inode.
 - The daemon does not receive `dac_override`, `dac_read_search`, `setuid`,
   `setgid`, `net_bind_service`, `sys_nice`, `sys_resource`, `ipc_lock`,
   `ipc_owner`, `kill`, `setexec`, `setcurrent`, `setfscreate`,
@@ -88,12 +87,15 @@ Results:
 - The packaged tree is read-only to `wifiman_t`; an attempted create under
   `/usr/lib/wi-fiman-desktop` was denied. Runtime copies are made with
   `cp -a --no-preserve=context`, so copied data stays `wifiman_var_t` and only
-  the named helpers receive `wifiman_runtime_exec_t`.
+  the named helpers receive `wifiman_runtime_exec_t`. There are no relabel
+  grants; `wg-quick` is rewritten through its existing inode.
 - The pruned capability/process set (only `net_admin`, `net_raw` plus the
   process-management permissions listed above) still starts the daemon, binds
   the local API and sets up the WireGuard interface.
 - Reviewed AVC policy is installed before the first dedicated restart and is
-  verified by the dedicated-domain test.
+  verified by the dedicated-domain test. If a reviewed module references
+  `wifiman_t` and the dedicated start fails, the installer removes that module
+  before loading the legacy base (which does not define `wifiman_t`).
 - The daemon's local API binds successfully on `127.0.0.1:63150` and listens.
   That port falls in Fedora's `mysqld_port_t` range (63132-63164), so the
   policy grants `name_bind` on `mysqld_port_t` as well as the general
