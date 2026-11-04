@@ -17,6 +17,7 @@ tests=(
   "$TEST_DIR/test-daemon-service-persistence.sh"
   "$TEST_DIR/test-shared-runtime-setup.sh"
   "$TEST_DIR/test-runtime-mirror-cleanup.sh"
+  "$TEST_DIR/test-upgrade-from-1.2.10.sh"
   "$TEST_DIR/test-runtime-wrapper.sh"
   "$TEST_DIR/test-wg-quick-mtu-cap.sh"
   "$TEST_DIR/test-release-workflow.sh"
