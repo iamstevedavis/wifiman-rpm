@@ -192,4 +192,17 @@ test -x "$RUNTIME_ROOT/wg-quick"
 test "$(mtu_guard_count "$RUNTIME_ROOT/wg-quick")" -eq 1
 test "$(run_fixture_mtu "$RUNTIME_ROOT/wg-quick")" = 'ip link set mtu 1280 up dev wg0'
 
+# --- a failed in-place write leaves the original intact and no leftovers ---
+if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+  FAIL_DIR="$WORK_DIR/write-fail"
+  mkdir -p "$FAIL_DIR"
+  make_wg_quick_fixture "$FAIL_DIR/wg-quick"
+  cp "$FAIL_DIR/wg-quick" "$WORK_DIR/write-fail-pristine"
+  chmod 0555 "$FAIL_DIR/wg-quick"
+  patch_fixture "$FAIL_DIR/wg-quick" 2>"$WORK_DIR/write-fail.err"
+  cmp "$WORK_DIR/write-fail-pristine" "$FAIL_DIR/wg-quick"
+  grep -q 'could not rewrite' "$WORK_DIR/write-fail.err"
+  test -z "$(find "$FAIL_DIR" -name '*.wifiman-mtu*' -print -quit)"
+fi
+
 echo "wg-quick MTU cap test passed"

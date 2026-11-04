@@ -103,7 +103,7 @@ cap_wg_quick_mtu() {
   local target=${1:-$RUNTIME_ROOT/wg-quick}
   local default_cap=1280
   local cap=${WIFIMAN_WG_MTU_CAP:-$default_cap}
-  local tmp mode
+  local tmp mode backup
 
   [[ -f "$target" ]] || return 0
 
@@ -158,9 +158,23 @@ cap_wg_quick_mtu() {
     # (or receives the helper filename transition if it has to be created).
     # Replacing it with mv would create a writable-state inode and require a
     # relabel grant.
-    cat "$tmp" > "$target"
-    rm -f "$tmp"
-    chmod "${mode:-0755}" "$target"
+    # The write is not atomic, so keep the original content and restore it if
+    # the write fails part-way (for example "Text file busy"). The mirror is
+    # rebuilt on every start, which also heals a write cut short by a crash.
+    backup=$(mktemp "$target.wifiman-mtu-orig.XXXXXX" 2>/dev/null) || backup=
+    if [[ -n "$backup" ]]; then
+      cat "$target" > "$backup" 2>/dev/null || { rm -f "$backup"; backup=; }
+    fi
+    if cat "$tmp" > "$target" 2>/dev/null; then
+      chmod "${mode:-0755}" "$target"
+    else
+      if [[ -n "$backup" ]]; then
+        cat "$backup" > "$target" 2>/dev/null || true
+      fi
+      printf 'wifiman-runtime: warning: could not rewrite %s; leaving MTU uncapped\n' \
+        "$target" >&2
+    fi
+    rm -f "$tmp" ${backup:+"$backup"}
   else
     rm -f "$tmp"
     printf 'wifiman-runtime: warning: unexpected wg-quick content; leaving MTU uncapped in %s\n' \
