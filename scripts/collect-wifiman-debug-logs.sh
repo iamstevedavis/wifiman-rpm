@@ -63,8 +63,8 @@ run_sudo() {
     run_sudo wg show all latest-handshakes 2>/dev/null || true
     echo "--- transfer ---"
     run_sudo wg show all transfer 2>/dev/null || true
-    echo "--- dump ---"
-    run_sudo wg show all dump 2>/dev/null || true
+    # Never run "wg show ... dump" or "wg showconf" here: both print each
+    # interface's private key, and this log is meant to be shared.
   else
     echo "wg not installed"
   fi

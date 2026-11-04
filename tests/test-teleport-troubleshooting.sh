@@ -65,4 +65,49 @@ do
   }
 done
 
+# The collector's output is meant to be shared, so it must never run a wg
+# command that prints a private key. Stub wg with a fake key in "dump" and
+# "showconf" output and assert the key never reaches the log.
+for forbidden in 'wg show all dump' 'wg showconf'; do
+  if grep -v '^[[:space:]]*#' "$COLLECTOR" | grep -Fq -- "$forbidden"; then
+    echo "collector must not run: $forbidden" >&2
+    exit 1
+  fi
+done
+if grep -Eq '^[[:space:]]*sudo wg (show [^|]*dump|showconf)' "$DOC"; then
+  echo "troubleshooting page must not tell users to print private keys" >&2
+  exit 1
+fi
+
+WORK_DIR=$(mktemp -d)
+trap 'rm -rf "$WORK_DIR"' EXIT
+mkdir -p "$WORK_DIR/bin"
+FAKE_KEY='FAKEPRIVATEKEYFAKEPRIVATEKEYFAKEPRIVATEKEY0='
+cat > "$WORK_DIR/bin/wg" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >> "$WORK_DIR/wg-calls.log"
+case "\$*" in
+  *dump*|*showconf*) printf 'wg0\t$FAKE_KEY\tpubkey\t51820\toff\n' ;;
+  *) printf 'interface: wg0\n  private key: (hidden)\n' ;;
+esac
+STUB
+cat > "$WORK_DIR/bin/sudo" <<'STUB'
+#!/usr/bin/env bash
+exec "$@"
+STUB
+chmod +x "$WORK_DIR/bin/wg" "$WORK_DIR/bin/sudo"
+
+PATH="$WORK_DIR/bin:$PATH" OUT="$WORK_DIR/debug.log" JOURNAL_LINES=1 APP_LOG_LINES=1 \
+  bash "$COLLECTOR" >/dev/null 2>&1 || true
+test -s "$WORK_DIR/debug.log"
+test -s "$WORK_DIR/wg-calls.log"
+if grep -Fq "$FAKE_KEY" "$WORK_DIR/debug.log"; then
+  echo "collector log leaked a WireGuard private key" >&2
+  exit 1
+fi
+if grep -Eq 'dump|showconf' "$WORK_DIR/wg-calls.log"; then
+  echo "collector invoked a wg command that prints private keys" >&2
+  exit 1
+fi
+
 echo "teleport troubleshooting test passed"

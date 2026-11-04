@@ -116,7 +116,6 @@ any `wg-quick` or SELinux error immediately before them.
   sudo wg show all
   sudo wg show all latest-handshakes
   sudo wg show all transfer
-  sudo wg show all dump
   ip -brief address
   ip route show table all
   ip -6 route show table all
@@ -247,6 +246,13 @@ failure, the daemon log excerpt, the firewalld `LogDenied` result, and any AVC.
 Say explicitly whether the direct path worked on a different network.
 
 Do not paste tokens, `service.json`, private keys, or unredacted audit logs.
+
+Never run `wg show ... dump` or `wg showconf`: both print the interface
+private key. Plain `wg show` hides it. The capture steps above also record
+endpoint addresses, firewall rulesets (`nft list ruleset`,
+`firewall-cmd --list-all-zones`), the app log and service environment, which can
+reveal local network details or tokens. Read the files and remove anything you
+do not want public before attaching them to an issue.
 
 ## Reset after capture
 
