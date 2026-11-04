@@ -45,7 +45,7 @@ grep -q 'sudo dnf install ./\${rpm_name}' "$WORKFLOW"
 grep -q 'body_path: release-notes.md' "$WORKFLOW"
 grep -q 'tag_name: ${{ env.RELEASE_TAG }}' "$WORKFLOW"
 grep -q 'fail_on_unmatched_files: true' "$WORKFLOW"
-grep -q 'semantic-version tag like `v1.2.10`' "$README"
+grep -q 'semantic-version tag like `v1.3.0`' "$README"
 grep -q 'Push `vX.Y.Z-N`' "$README"
 grep -q 'Release notes include the upstream WiFiman Desktop version and RPM install commands.' "$README"
 

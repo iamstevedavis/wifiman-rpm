@@ -13,7 +13,7 @@ set -euo pipefail
 #
 # Prints KEY=VALUE lines suitable for appending to $GITHUB_ENV.
 
-DEFAULT_VERSION=1.2.10
+DEFAULT_VERSION=1.3.0
 semver='^[0-9]+\.[0-9]+\.[0-9]+$'
 
 die() {
@@ -41,8 +41,8 @@ else
   release_tag="v${version}-${release}"
 fi
 
-[[ "$version" =~ $semver ]] || die "version must look like 1.2.10 (got $version)"
-[[ "$upstream_version" =~ $semver ]] || die "upstream_version must look like 1.2.10 (got $upstream_version)"
+[[ "$version" =~ $semver ]] || die "version must look like 1.3.0 (got $version)"
+[[ "$upstream_version" =~ $semver ]] || die "upstream_version must look like 1.3.0 (got $upstream_version)"
 [[ "$release" =~ ^[1-9][0-9]*$ ]] || die "rpm_release must be a positive integer (got $release)"
 
 printf 'VERSION=%s\n' "$version"

@@ -30,7 +30,8 @@ printf '{"original":true}\n' > "$APP_ROOT/service.json"
 touch "$STATE_ROOT/wifiman-desktop.log"
 ln -s ../../../var/lib/wifiman-desktop/wifiman-desktop.log "$APP_ROOT/wifiman-desktop.log"
 printf '[Unit]\n' > "$APP_ROOT/wifiman-desktop.service"
-mkdir -p "$APP_ROOT/compat"
+mkdir -p "$APP_ROOT/compat/lib64"
+printf 'should-not-be-mirrored\n' > "$APP_ROOT/compat/lib64/libwebkit2gtk-4.0.so"
 printf '#!/usr/bin/env bash\n' > "$APP_ROOT/wg"
 chmod +x "$APP_ROOT/wg"
 
@@ -38,7 +39,7 @@ APP_ROOT="$APP_ROOT" STATE_ROOT="$STATE_ROOT" bash "$ROOT_DIR/scripts/wifiman-de
 
 test -d "$STATE_ROOT/app-root"
 test -f "$STATE_ROOT/app-root/wifiman-desktopd"
-test -d "$STATE_ROOT/app-root/compat"
+test ! -e "$STATE_ROOT/app-root/compat"
 test -f "$STATE_ROOT/app-root/wg"
 test ! -e "$STATE_ROOT/app-root/package.txt"
 test ! -e "$STATE_ROOT/app-root/wifiman-desktop.log"

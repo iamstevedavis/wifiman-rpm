@@ -51,11 +51,11 @@ expect_failure 'tag must be vX.Y.Z or vX.Y.Z-N' GITHUB_REF=refs/tags/v1.2.10-0 G
 
 # --- manual run: defaults --------------------------------------------------
 expect "$(resolve GITHUB_REF=refs/heads/develop GITHUB_REF_NAME=develop)" \
-'VERSION=1.2.10
-UPSTREAM_VERSION=1.2.10
+'VERSION=1.3.0
+UPSTREAM_VERSION=1.3.0
 RELEASE=1
-RELEASE_TAG=v1.2.10-1
-ASSET_PREFIX=wifiman-desktop-1.2.10-1'
+RELEASE_TAG=v1.3.0-1
+ASSET_PREFIX=wifiman-desktop-1.3.0-1'
 
 # --- manual run: packaging-only rebuild gets its own tag ------------------
 expect "$(resolve GITHUB_REF=refs/heads/develop INPUT_VERSION=1.2.10 INPUT_RPM_RELEASE=2)" \

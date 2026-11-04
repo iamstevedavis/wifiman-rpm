@@ -2,13 +2,13 @@
 set -euo pipefail
 
 ROOT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-VERSION=${VERSION:-1.2.10}
+VERSION=${VERSION:-1.3.0}
 RELEASE=${RELEASE:-1}
 TOPDIR=${TOPDIR:-"$ROOT_DIR/.rpmbuild"}
 STAGE_DIR=${STAGE_DIR:-"$ROOT_DIR/out/wifiman-desktop-fedora-newer"}
 TARBALL="$TOPDIR/SOURCES/wifiman-desktop-${VERSION}-stage.tar.gz"
 SPEC_FILE="$ROOT_DIR/wifiman-desktop.spec"
-FEDORA_IMAGE=${FEDORA_IMAGE:-fedora:40}
+FEDORA_IMAGE=${FEDORA_IMAGE:-fedora:44}
 RESTAGE=${RESTAGE:-1}
 
 command -v docker >/dev/null
@@ -25,11 +25,37 @@ fi
 
 required_paths=(
   "$STAGE_DIR/bin/wi-fiman-desktop"
-  "$STAGE_DIR/compat/lib64"
-  "$STAGE_DIR/compat/libexec/webkit2gtk-4.0/WebKitNetworkProcess"
-  "$STAGE_DIR/compat/libexec/webkit2gtk-4.0/WebKitWebProcess"
-  "$STAGE_DIR/compat/lib64/webkit2gtk-4.0/injected-bundle/libwebkit2gtkinjectedbundle.so"
 )
+
+found_ui=0
+for candidate in "$STAGE_DIR/upstream/usr/bin/wifiman-desktop" \
+                 "$STAGE_DIR/upstream/usr/bin/wi-fiman-desktop"; do
+  if [[ -e "$candidate" ]]; then
+    required_paths+=("$candidate")
+    found_ui=1
+    break
+  fi
+done
+if [[ $found_ui -eq 0 ]]; then
+  echo "missing staged UI binary under $STAGE_DIR/upstream/usr/bin" >&2
+  echo "rebuild with: RESTAGE=1 ./scripts/build-rpm-from-stage.sh" >&2
+  exit 1
+fi
+
+found_libdir=0
+for candidate in "$STAGE_DIR/upstream/usr/lib/wifiman-desktop" \
+                 "$STAGE_DIR/upstream/usr/lib/wi-fiman-desktop"; do
+  if [[ -e "$candidate" ]]; then
+    required_paths+=("$candidate")
+    found_libdir=1
+    break
+  fi
+done
+if [[ $found_libdir -eq 0 ]]; then
+  echo "missing staged app library directory under $STAGE_DIR/upstream/usr/lib" >&2
+  echo "rebuild with: RESTAGE=1 ./scripts/build-rpm-from-stage.sh" >&2
+  exit 1
+fi
 
 for path in "${required_paths[@]}"; do
   if [[ ! -e "$path" ]]; then
