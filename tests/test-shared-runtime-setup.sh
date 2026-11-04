@@ -83,6 +83,40 @@ EOF
   done
 done
 
+# The runtime mirror must not preserve packaged SELinux contexts when it is
+# running in the dedicated wifiman_t domain, but must preserve them for the
+# legacy init_t path.
+mkdir -p "$WORK_DIR/mock-bin" "$WORK_DIR/source" "$WORK_DIR/runtime"
+printf 'data\n' > "$WORK_DIR/source/item"
+cat > "$WORK_DIR/mock-bin/cp" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$CP_LOG"
+EOF
+chmod +x "$WORK_DIR/mock-bin/cp"
+for domain in 0 1; do
+  CP_LOG="$WORK_DIR/cp-$domain.log"
+  export CP_LOG
+  : > "$CP_LOG"
+  (
+    set -euo pipefail
+    APP_ROOT="$WORK_DIR/source"
+    STATE_ROOT="$WORK_DIR/state-$domain"
+    RUNTIME_ROOT="$STATE_ROOT/app-root"
+    PATH="$WORK_DIR/mock-bin:$PATH"
+    export APP_ROOT STATE_ROOT RUNTIME_ROOT PATH CP_LOG
+    # shellcheck disable=SC1090
+    source "$ROOT_DIR/scripts/wifiman-runtime.sh"
+    is_wifiman_domain=$domain
+    sync_runtime_item item
+  )
+done
+grep -q -- '--no-preserve=context' "$WORK_DIR/cp-1.log"
+if grep -q -- '--no-preserve=context' "$WORK_DIR/cp-0.log"; then
+  echo 'legacy runtime copy must preserve the packaged context' >&2
+  exit 1
+fi
+
 # The sourced helper must be supplied, installed and owned by the RPM.
 grep -qx 'Source6:        wifiman-runtime.sh' "$ROOT_DIR/wifiman-desktop.spec"
 grep -qx 'install -m 0644 %{SOURCE6} %{buildroot}%{_prefix}/lib/wi-fiman-desktop/wifiman-runtime.sh' "$ROOT_DIR/wifiman-desktop.spec"

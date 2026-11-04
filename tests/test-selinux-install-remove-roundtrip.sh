@@ -127,7 +127,7 @@ EOT
 : > "$module_name.pp"
 EOF
 
-for tool in systemctl dnf update-desktop-database gtk-update-icon-cache; do
+for tool in systemctl dnf update-desktop-database gtk-update-icon-cache restorecon chcon; do
   cat > "$BIN_DIR/$tool" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -159,7 +159,7 @@ reset_state() {
 }
 
 run_installer() {
-  env PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 \
+  env PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy \
     bash "$INSTALLER" > "$WORK_DIR/install.out" 2>&1 || {
       cat "$WORK_DIR/install.out" >&2
       cat "$LOG_FILE" >&2
@@ -211,7 +211,7 @@ grep -qx '300 wifiman_desktop_local' "$SEMODULE_STATE"
 
 # Scenario 3: module-name overrides stay aligned between install and removal.
 reset_state
-env PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 \
+env PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy \
   BASE_MODULE_NAME=custom_base AVC_MODULE_NAME=custom_avc \
   bash "$INSTALLER" > "$WORK_DIR/install.out" 2>&1
 grep -q 'semodule -X 300 -i .*/custom_base.pp' "$LOG_FILE"

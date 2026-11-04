@@ -267,23 +267,37 @@ Enable the daemon once so SELinux has something to audit:
 sudo systemctl enable --now wifiman-desktop.service
 ```
 
-If SELinux blocks the daemon, first distinguish packaging/wrapper errors from AVC denials. **The existing base policy grants permissions to shared `init_t` and generic file labels, not just WiFiman.** Its dedicated-domain replacement is pending [issue #15](https://github.com/iamstevedavis/wifiman-rpm/issues/15). See the [scope audit and enforcing-Fedora checklist](docs/selinux-validation.md) before opting into this workaround:
+If SELinux blocks the daemon, first distinguish packaging/wrapper errors from AVC denials. Two policy variants are available:
+
+- **dedicated** (default): installs the `wifiman_t` daemon domain, WiFiman-specific file labels and a systemd entry-point transition. The packaged tree is read-only; only the runtime mirror and state are writable. The desktop UI stays in the user's domain. This is validated for daemon start, restart, reboot, the local API and the WireGuard helper path, but still needs interactive UI/real-VPN validation.
+- **legacy**: grants permissions to shared `init_t` and generic file labels. It affects processes beyond WiFiman and is retained only as a rollback/fallback.
+
+Install the scoped policy:
 
 ```bash
-./scripts/install-selinux-policy.sh
+sudo ./scripts/install-selinux-policy.sh
 ```
 
-That helper is only needed when SELinux is enforcing and the daemon gets denied. It:
+If the transition or restart fails, the helper automatically reinstalls the legacy module, restores default labels and exits nonzero instead of leaving the daemon broken. The legacy policy remains available explicitly:
+
+```bash
+sudo env WIFIMAN_SELINUX_POLICY=legacy ./scripts/install-selinux-policy.sh
+```
+
+The helper is only needed when SELinux is enforcing and the daemon gets denied. It:
 
 - re-runs itself with `sudo` when needed
-- compiles the repo-managed base policy from `scripts/wifiman-desktop.te`
+- compiles the selected policy from `scripts/wifiman-desktop.te` (dedicated) or `scripts/wifiman-desktop-legacy.te` (legacy)
 - installs that policy as the `wifiman-desktop` SELinux module with priority `300`
+- in dedicated mode, installs `scripts/wifiman-desktop.fc`, relabels the packaged tree and runtime mirror, installs any explicitly reviewed AVC module before the first restart, then verifies the daemon main PID is in `wifiman_t`
 - checks recent audit logs for `wifiman-desktop` AVC denials
 - saves AVC evidence and a draft `wifiman_desktop_local` source in a root-only directory under `/var/tmp`, **without installing it**
 - restarts `wifiman-desktop.service`
 - prints the resulting service status
 
 The helper does not change SELinux mode or disable enforcement. Filtering audit records by process name does **not** confine an allow rule to that process. Review every source type, target type, class and permission against the reproduced failure; reject unrelated denials and shared-label broadening. Existing AVC modules are left unchanged, so review previously installed modules too.
+
+The dedicated policy has been exercised on enforcing Fedora for daemon start, restart, reboot, the local API and the WireGuard helper path. A full interactive pass (UI, discovery against real devices, real Teleport/VPN and the `wireguard-go` userspace path) is still required before closing [issue #15](https://github.com/iamstevedavis/wifiman-rpm/issues/15). See the [validation record and remaining checklist](docs/selinux-validation.md).
 
 After reviewing/editing the saved source, explicitly install it (substitute the printed path):
 
@@ -306,7 +320,7 @@ SINCE=boot ./scripts/install-selinux-policy.sh
 - on SELinux-enforcing Fedora hosts, the RPM build container bind mount is labeled with `:Z`
 - host EGL / GLVND and WebKitGTK 4.1 pieces are provided by the Fedora system
 - the RPM no longer installs a private WebKit injected bundle or `webkit2gtk-4.0` helper files
-- the daemon SELinux policy helper now includes a repo-managed base policy plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
+- the daemon SELinux policy helper includes a dedicated `wifiman_t` policy (read-only package tree, separate runtime helper labels) and a legacy shared-label fallback, plus optional local AVC-derived deltas; it is still a local-machine workaround, not an upstream Fedora policy integration yet
 
 ## Agent / automation notes
 

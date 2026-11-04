@@ -6,7 +6,16 @@ WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 HELPER="$ROOT_DIR/scripts/wifiman-runtime.sh"
-mkdir -p "$WORK_DIR/empty-app" "$WORK_DIR/state"
+mkdir -p "$WORK_DIR/empty-app" "$WORK_DIR/state" "$WORK_DIR/bin"
+CHCON_LOG="$WORK_DIR/chcon.log"
+export CHCON_LOG
+: > "$CHCON_LOG"
+cat > "$WORK_DIR/bin/chcon" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$CHCON_LOG"
+EOF
+chmod +x "$WORK_DIR/bin/chcon"
 
 # Trimmed copy of the shipped wg-quick MTU handling, including the fallback
 # that the runtime mirror patches. Keep it in sync with the real script so the
@@ -55,6 +64,8 @@ patch_fixture() {
   local fixture_path=$1 cap=${2-__unset__}
   (
     set -euo pipefail
+    PATH="$WORK_DIR/bin:$PATH"
+    export PATH
     APP_ROOT="$WORK_DIR/empty-app"
     STATE_ROOT="$WORK_DIR/state"
     RUNTIME_ROOT="$STATE_ROOT/app-root"
@@ -97,6 +108,7 @@ patch_fixture "$WORK_DIR/wg-quick"
 
 test -x "$WORK_DIR/wg-quick"
 test "$(mtu_guard_count "$WORK_DIR/wg-quick")" -eq 1
+test ! -s "$CHCON_LOG"
 test "$(run_fixture_mtu "$WORK_DIR/wg-quick")" = 'ip link set mtu 1280 up dev wg0'
 
 # --- rerun is idempotent ---------------------------------------------------
@@ -179,5 +191,18 @@ cmp "$WORK_DIR/packaged-pristine" "$APP_ROOT/wg-quick"
 test -x "$RUNTIME_ROOT/wg-quick"
 test "$(mtu_guard_count "$RUNTIME_ROOT/wg-quick")" -eq 1
 test "$(run_fixture_mtu "$RUNTIME_ROOT/wg-quick")" = 'ip link set mtu 1280 up dev wg0'
+
+# --- a failed in-place write leaves the original intact and no leftovers ---
+if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+  FAIL_DIR="$WORK_DIR/write-fail"
+  mkdir -p "$FAIL_DIR"
+  make_wg_quick_fixture "$FAIL_DIR/wg-quick"
+  cp "$FAIL_DIR/wg-quick" "$WORK_DIR/write-fail-pristine"
+  chmod 0555 "$FAIL_DIR/wg-quick"
+  patch_fixture "$FAIL_DIR/wg-quick" 2>"$WORK_DIR/write-fail.err"
+  cmp "$WORK_DIR/write-fail-pristine" "$FAIL_DIR/wg-quick"
+  grep -q 'could not rewrite' "$WORK_DIR/write-fail.err"
+  test -z "$(find "$FAIL_DIR" -name '*.wifiman-mtu*' -print -quit)"
+fi
 
 echo "wg-quick MTU cap test passed"

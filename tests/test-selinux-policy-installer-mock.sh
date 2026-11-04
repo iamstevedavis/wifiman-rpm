@@ -7,7 +7,8 @@ WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 BIN_DIR="$WORK_DIR/bin"
 LOG_FILE="$WORK_DIR/tool.log"
-mkdir -p "$BIN_DIR"
+mkdir -p "$BIN_DIR" "$WORK_DIR/app-root" "$WORK_DIR/state-root"
+export APP_ROOT="$WORK_DIR/app-root" STATE_ROOT="$WORK_DIR/state-root"
 
 cat > "$BIN_DIR/checkmodule" <<'EOF'
 #!/usr/bin/env bash
@@ -48,6 +49,18 @@ cat > "$BIN_DIR/systemctl" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 printf 'systemctl %s\n' "$*" >> "$TEST_LOG"
+EOF
+
+cat > "$BIN_DIR/restorecon" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'restorecon %s\n' "$*" >> "$TEST_LOG"
+EOF
+
+cat > "$BIN_DIR/chcon" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf 'chcon %s\n' "$*" >> "$TEST_LOG"
 EOF
 
 cat > "$BIN_DIR/ausearch" <<'EOF'
@@ -99,7 +112,7 @@ chmod +x "$BIN_DIR"/*
 if ! TEST_LOG="$LOG_FILE" \
 PATH="$BIN_DIR:$PATH" \
 HOME="$WORK_DIR" \
-WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 \
+WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy \
 bash "$INSTALLER" > "$WORK_DIR/out.txt" 2>&1; then
   cat "$WORK_DIR/out.txt" >&2
   cat "$LOG_FILE" >&2 || true
@@ -115,6 +128,8 @@ if grep -q 'semodule .*wifiman_desktop_local.pp' "$LOG_FILE"; then
   exit 1
 fi
 grep -q 'systemctl restart wifiman-desktop.service' "$LOG_FILE"
+grep -q "restorecon -R $APP_ROOT" "$LOG_FILE"
+grep -q "restorecon -R $STATE_ROOT" "$LOG_FILE"
 grep -q 'Installed SELinux base module: wifiman-desktop' "$WORK_DIR/out.txt"
 grep -q 'NOT installed' "$WORK_DIR/out.txt"
 grep -q 'shared init_t' "$WORK_DIR/out.txt"
@@ -126,7 +141,7 @@ reviewed_source=$(find "$WORK_DIR" -path '*/review.*/wifiman_desktop_local.te')
 # Explicitly reviewed source is compiled afresh; no audit generation runs.
 : > "$LOG_FILE"
 TEST_LOG="$LOG_FILE" PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" \
-  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 REVIEWED_AVC_TE="$reviewed_source" \
+  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy REVIEWED_AVC_TE="$reviewed_source" \
   bash "$INSTALLER" > "$WORK_DIR/reviewed.out" 2>&1
 grep -q 'checkmodule .*wifiman_desktop_local.te' "$LOG_FILE"
 grep -q 'semodule -X 300 -i .*/wifiman_desktop_local.pp' "$LOG_FILE"
@@ -136,7 +151,7 @@ if grep -Eq '^(ausearch|audit2allow) ' "$LOG_FILE"; then exit 1; fi
 # Missing review sources fail before installing any module.
 : > "$LOG_FILE"
 if TEST_LOG="$LOG_FILE" PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" \
-  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 REVIEWED_AVC_TE="$WORK_DIR/missing.te" \
+  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy REVIEWED_AVC_TE="$WORK_DIR/missing.te" \
   bash "$INSTALLER" > "$WORK_DIR/missing.out" 2>&1; then exit 1; fi
 grep -q 'Missing or empty reviewed policy source' "$WORK_DIR/missing.out"
 [[ ! -s "$LOG_FILE" ]]
@@ -144,7 +159,7 @@ grep -q 'Missing or empty reviewed policy source' "$WORK_DIR/missing.out"
 # A policy generation failure is visible and prevents reporting success.
 : > "$LOG_FILE"
 if TEST_LOG="$LOG_FILE" PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" \
-  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 TEST_GENERATION_FAIL=1 \
+  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy TEST_GENERATION_FAIL=1 \
   bash "$INSTALLER" > "$WORK_DIR/fail.out" 2>&1; then exit 1; fi
 grep -q 'generation failed' "$WORK_DIR/fail.out"
 if grep -q 'semodule .*wifiman_desktop_local.pp' "$LOG_FILE"; then exit 1; fi
@@ -152,7 +167,7 @@ if grep -q 'semodule .*wifiman_desktop_local.pp' "$LOG_FILE"; then exit 1; fi
 # No AVCs means base policy only, with no generated artifact.
 : > "$LOG_FILE"
 TEST_LOG="$LOG_FILE" PATH="$BIN_DIR:$PATH" HOME="$WORK_DIR" \
-  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 TEST_NO_AVCS=1 \
+  WIFIMAN_ASSUME_ROOT_FOR_TESTS=1 WIFIMAN_SELINUX_POLICY=legacy TEST_NO_AVCS=1 \
   bash "$INSTALLER" > "$WORK_DIR/no-avcs.out" 2>&1
 grep -q 'No SELinux AVC denials found' "$WORK_DIR/no-avcs.out"
 if grep -q '^audit2allow ' "$LOG_FILE"; then exit 1; fi

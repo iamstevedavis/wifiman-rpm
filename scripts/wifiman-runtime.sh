@@ -18,6 +18,15 @@ RUNTIME_ITEMS=(
 
 mkdir -p "$STATE_ROOT" "$RUNTIME_ROOT"
 
+# Under the dedicated policy the daemon may write the runtime mirror but not
+# the packaged tree. Leave copied files at the kernel-selected runtime type
+# instead of preserving the packaged read-only context. Under the legacy
+# policy the copies must keep lib_t so init_t can execute them.
+current_domain=
+{ read -r current_domain < /proc/self/attr/current; } 2>/dev/null || true
+is_wifiman_domain=0
+[[ "$current_domain" == *wifiman_t* ]] && is_wifiman_domain=1
+
 sync_runtime_item() {
   local name=$1
   local src="$APP_ROOT/$name"
@@ -25,13 +34,16 @@ sync_runtime_item() {
 
   [[ -e "$src" ]] || return 0
 
-  rm -rf "$dst"
-  if [[ -d "$src" ]]; then
-    cp -a "$src" "$dst"
-  else
-    install -D -m 0755 /dev/null "$dst"
-    cp -a "$src" "$dst"
+  local -a cp_args=(-a)
+
+  if (( is_wifiman_domain )); then
+    cp_args+=(--no-preserve=context)
   fi
+
+  rm -rf "$dst"
+  # Avoid an extra install(1) step: it attempts a context transition that is
+  # denied to the confined daemon and only prints a warning.
+  cp "${cp_args[@]}" "$src" "$dst"
 }
 
 # If the state file already points at the runtime copy from a prior run, the
@@ -91,7 +103,7 @@ cap_wg_quick_mtu() {
   local target=${1:-$RUNTIME_ROOT/wg-quick}
   local default_cap=1280
   local cap=${WIFIMAN_WG_MTU_CAP:-$default_cap}
-  local tmp mode
+  local tmp mode backup
 
   [[ -f "$target" ]] || return 0
 
@@ -142,8 +154,27 @@ cap_wg_quick_mtu() {
     END { exit(patched ? 0 : 1) }
   ' "$target" > "$tmp"; then
     mode=$(stat -c '%a' "$target" 2>/dev/null || true)
-    chmod "${mode:-0755}" "$tmp"
-    mv -f "$tmp" "$target"
+    # Write through the existing target so it keeps its runtime-helper label
+    # (or receives the helper filename transition if it has to be created).
+    # Replacing it with mv would create a writable-state inode and require a
+    # relabel grant.
+    # The write is not atomic, so keep the original content and restore it if
+    # the write fails part-way (for example "Text file busy"). The mirror is
+    # rebuilt on every start, which also heals a write cut short by a crash.
+    backup=$(mktemp "$target.wifiman-mtu-orig.XXXXXX" 2>/dev/null) || backup=
+    if [[ -n "$backup" ]]; then
+      cat "$target" > "$backup" 2>/dev/null || { rm -f "$backup"; backup=; }
+    fi
+    if cat "$tmp" > "$target" 2>/dev/null; then
+      chmod "${mode:-0755}" "$target"
+    else
+      if [[ -n "$backup" ]]; then
+        cat "$backup" > "$target" 2>/dev/null || true
+      fi
+      printf 'wifiman-runtime: warning: could not rewrite %s; leaving MTU uncapped\n' \
+        "$target" >&2
+    fi
+    rm -f "$tmp" ${backup:+"$backup"}
   else
     rm -f "$tmp"
     printf 'wifiman-runtime: warning: unexpected wg-quick content; leaving MTU uncapped in %s\n' \
