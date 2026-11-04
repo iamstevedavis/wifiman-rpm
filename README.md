@@ -164,9 +164,15 @@ find ./.rpmbuild/RPMS ./.rpmbuild/SRPMS -type f | sort
 
 The GitHub Actions release workflow builds versioned RPM artifacts and publishes them as downloadable assets.
 
-- Push a semantic-version tag like `v1.2.10` to create/update the matching GitHub release.
-- Use `vMAJOR.MINOR.PATCH` for package releases, e.g. `v1.2.11`; pass `upstream_version` separately when it differs from the package release version.
-- Or run the **release** workflow manually with `version`, `upstream_version`, `rpm_release`, and `create_release=true`.
+The package version follows the upstream WiFiman Desktop version. The RPM release number counts packaging-only rebuilds of the same upstream version.
+
+- Push a semantic-version tag like `v1.2.10` to release upstream 1.2.10 as RPM release 1.
+- Push `vX.Y.Z-N` (e.g. `v1.2.10-2`) to ship packaging fixes on the same upstream version as RPM release `N`.
+- Or run the **release** workflow manually with `version`, `rpm_release`, and `create_release=true`. It tags the release `vVERSION-RELEASE` (e.g. `v1.2.10-2`) and fails if that tag already exists, unless `overwrite=true`. `upstream_version` defaults to `version`.
+
+Version and tag handling lives in `scripts/release-version.sh` and is covered by `tests/test-release-version.sh`.
+
+The **test** workflow runs `./tests/run-all.sh` on every pull request and on pushes to `develop`.
 
 The workflow uploads:
 

@@ -20,6 +20,7 @@ tests=(
   "$TEST_DIR/test-runtime-wrapper.sh"
   "$TEST_DIR/test-wg-quick-mtu-cap.sh"
   "$TEST_DIR/test-release-workflow.sh"
+  "$TEST_DIR/test-release-version.sh"
   "$TEST_DIR/test-selinux-policy-installer.sh"
   "$TEST_DIR/test-selinux-policy-installer-mock.sh"
   "$TEST_DIR/test-selinux-install-remove-roundtrip.sh"
