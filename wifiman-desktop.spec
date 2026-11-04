@@ -44,6 +44,7 @@ Requires:       cairo
 Requires:       gdk-pixbuf2
 Requires:       systemd
 Requires:       wireguard-tools
+Requires:       net-tools
 Requires:       dbus-x11
 
 %description

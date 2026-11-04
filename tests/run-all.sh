@@ -25,6 +25,7 @@ tests=(
   "$TEST_DIR/test-selinux-install-remove-roundtrip.sh"
   "$TEST_DIR/test-script-syntax.sh"
   "$TEST_DIR/test-spec-log-symlink.sh"
+  "$TEST_DIR/test-spec-net-tools.sh"
   "$TEST_DIR/test-stage-env-patch.sh"
 )
 
