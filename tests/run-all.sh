@@ -34,6 +34,7 @@ tests=(
   "$TEST_DIR/test-teleport-diagnostics.sh"
   "$TEST_DIR/test-stage-updater-scope-patch.sh"
   "$TEST_DIR/test-upstream-1.3.sh"
+  "$TEST_DIR/test-teleport-troubleshooting.sh"
 )
 
 for test_script in "${tests[@]}"; do

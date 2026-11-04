@@ -82,6 +82,15 @@ python3 scripts/patch-wifiman-updater-scope.py --check /path/to/usr/bin/wifiman-
 
 The check succeeds only when exactly one patched or unpatched scope entry is present.
 
+## Teleport / WireGuard troubleshooting
+
+If Teleport connects and then reconnects every ~15 seconds, see
+[Teleport reconnect troubleshooting](docs/teleport-troubleshooting.md). It
+explains what the 1.3.0 package can and cannot control, gives a copy-pasteable
+capture procedure for `wg show`, routes and IPv6 inside the tunnel, and covers
+firewalld `LogDenied` plus SELinux AVC checks. The packaged
+`./scripts/collect-wifiman-debug-logs.sh` now captures the same state.
+
 ## Requirements
 
 On Fedora:
