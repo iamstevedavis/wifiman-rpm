@@ -183,6 +183,26 @@ is read when the daemon starts, so set it with a systemd drop-in:
 Values below 1280 are raised to 1280: Linux drops IPv6 on smaller links, and
 the daemon's tunnel health check uses IPv6.
 
+The same runtime `wg-quick` also clamps the advertised TCP MSS while the tunnel
+is up. With the link at 1280, TCP would otherwise advertise an MSS that still
+overflows the roughly 1190-1200-byte payload of the measured hotspot path. The
+clamp adds an `iptables`/`ip6tables` mangle rule (`TCPMSS --set-mss 1140` by
+default) when the interface comes up and removes it from `del_if`, so both
+`wg-quick down` and a failed up clean it up. If `iptables` is absent, an
+`nft` `inet` table is used instead. If neither tool is installed, or a command
+fails, the clamp is skipped silently and the tunnel still comes up. Set
+`WIFIMAN_TCP_MSS_CLAMP` in the daemon environment to change the MSS;
+`WIFIMAN_TCP_MSS_CLAMP=0` disables it, independently of the MTU cap. The
+dedicated SELinux policy allows `iptables_exec_t`, and on Fedora that label
+covers `nft`, `iptables` and `ip6tables`, so no policy change is needed.
+
+Both patches apply to the runtime mirror only. The daemon wrapper changes into
+the mirror and executes the mirrored daemon; the 1.3.0 daemon resolves its
+helper paths from its own executable directory (`osext.ExecutableFolder`,
+overridable with `BASE`), so it runs `$RUNTIME_ROOT/wg-quick` rather than
+`/usr/bin/wg-quick`. That was established by inspecting the 1.3.0 daemon binary,
+not by tracing a live Teleport session.
+
 ### 3) Test against a Fedora container
 
 ```bash

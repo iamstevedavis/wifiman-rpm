@@ -98,6 +98,9 @@ done
 # disables it. Unrecognized wg-quick content is left untouched with a warning
 # so an upstream change cannot break the mirror.
 WG_QUICK_MTU_CAP_MARKER='# wifiman: WireGuard MTU cap'
+# TCP MSS clamp marker. Kept separate from the MTU cap so either can be
+# disabled independently.
+WG_QUICK_MSS_CLAMP_MARKER='# wifiman: TCP MSS clamp'
 
 cap_wg_quick_mtu() {
   local target=${1:-$RUNTIME_ROOT/wg-quick}
@@ -182,7 +185,179 @@ cap_wg_quick_mtu() {
   fi
 }
 
+# With the link capped at 1280, TCP still advertises an MSS derived from that
+# MTU (1240 for IPv4). On the measured hotspot path only about 1190-1200 bytes
+# of tunnel payload fit, so those larger segments are silently dropped. Clamp
+# the advertised MSS while the tunnel is up and remove the rule when it goes
+# down. The default keeps both IPv4 (1180-byte) and IPv6 (1200-byte) packets
+# inside that window.
+#
+# Only the runtime copy is patched. The clamp prefers iptables/ip6tables
+# because the dedicated wifiman_t policy already allows iptables_exec_t (and
+# Fedora labels nft the same way); nft is the fallback when iptables is absent.
+# If neither tool is available, or any command fails, the tunnel still comes
+# up: every firewall command is optional and its errors are discarded.
+# WIFIMAN_TCP_MSS_CLAMP overrides the MSS and 0 disables the clamp.
+cap_wg_quick_mss() {
+  local target=${1:-$RUNTIME_ROOT/wg-quick}
+  local default_mss=1140
+  local min_mss=536
+  local max_mss=65535
+  local mss=${WIFIMAN_TCP_MSS_CLAMP:-$default_mss}
+  local insertion_marker='# ~~ function override insertion point ~~'
+  local tmp snippet mode backup
+
+  [[ -f "$target" ]] || return 0
+
+  if ! [[ "$mss" =~ ^[0-9]+$ ]]; then
+    printf 'wifiman-runtime: warning: ignoring invalid WIFIMAN_TCP_MSS_CLAMP=%s (using %s)\n' \
+      "$mss" "$default_mss" >&2
+    mss=$default_mss
+  fi
+  # Base 10, so a leading zero is not read as octal by the arithmetic below.
+  mss=$((10#$mss))
+  if (( mss > 0 && mss < min_mss )); then
+    printf 'wifiman-runtime: warning: WIFIMAN_TCP_MSS_CLAMP=%s is below the TCP minimum (using %s)\n' \
+      "$mss" "$min_mss" >&2
+    mss=$min_mss
+  elif (( mss > max_mss )); then
+    printf 'wifiman-runtime: warning: WIFIMAN_TCP_MSS_CLAMP=%s is above the TCP maximum (using %s)\n' \
+      "$mss" "$default_mss" >&2
+    mss=$default_mss
+  fi
+
+  # Already patched by an earlier run: leave it alone.
+  if grep -qF "$WG_QUICK_MSS_CLAMP_MARKER" "$target"; then
+    return 0
+  fi
+
+  # Clamp disabled: keep the copied wg-quick exactly as packaged.
+  if [[ "$mss" -eq 0 ]]; then
+    return 0
+  fi
+
+  # The bundled wg-quick exposes this insertion point after its function
+  # definitions and before the command dispatch. The two call sites are the
+  # same ones a PostUp/PostDown hook would use: after the link is up and before
+  # del_if() tears it down (including the failure trap).
+  if ! grep -qxF "$insertion_marker" "$target" ||
+    ! grep -qE '^[[:space:]]*set_mtu_up$' "$target" ||
+    ! grep -qE '^del_if\(\) \{' "$target"; then
+    printf 'wifiman-runtime: warning: unexpected wg-quick content; leaving TCP MSS unclamped in %s\n' \
+      "$target" >&2
+    return 0
+  fi
+
+  snippet=$(mktemp "$target.wifiman-mss-snippet.XXXXXX" 2>/dev/null) || {
+    printf 'wifiman-runtime: warning: could not create a temp file to clamp TCP MSS in %s\n' \
+      "$target" >&2
+    return 0
+  }
+
+  if ! sed "s/@MSS@/$mss/g" > "$snippet" <<'EOF'
+# wifiman: TCP MSS clamp
+# Inserted before the command dispatch by wifiman-runtime.sh. The rule is
+# removed by del_if(), which runs on down and on the failure trap.
+wifiman_mss_clamp() {
+	local mss=@MSS@ table
+	if command -v iptables >/dev/null 2>&1; then
+		iptables -t mangle -C POSTROUTING -o "$INTERFACE" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$mss" >/dev/null 2>&1 ||
+			iptables -t mangle -A POSTROUTING -o "$INTERFACE" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$mss" >/dev/null 2>&1 || true
+		if command -v ip6tables >/dev/null 2>&1; then
+			ip6tables -t mangle -C POSTROUTING -o "$INTERFACE" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$mss" >/dev/null 2>&1 ||
+				ip6tables -t mangle -A POSTROUTING -o "$INTERFACE" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "$mss" >/dev/null 2>&1 || true
+		fi
+	elif command -v nft >/dev/null 2>&1; then
+		table="wifiman_mss_${INTERFACE//[^a-zA-Z0-9_]/_}"
+		nft delete table inet "$table" >/dev/null 2>&1 || true
+		if nft add table inet "$table" >/dev/null 2>&1 &&
+			nft "add chain inet $table postrouting { type filter hook postrouting priority mangle; }" >/dev/null 2>&1 &&
+			nft add rule inet "$table" postrouting oifname "$INTERFACE" tcp flags syn tcp option maxseg size set "$mss" >/dev/null 2>&1; then
+			:
+		else
+			nft delete table inet "$table" >/dev/null 2>&1 || true
+		fi
+	fi
+	return 0
+}
+
+wifiman_mss_unclamp() {
+	local table
+	# Remove whichever backend was used, even if the PATH changed while the
+	# tunnel was up.
+	if command -v iptables >/dev/null 2>&1; then
+		iptables -t mangle -D POSTROUTING -o "$INTERFACE" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "@MSS@" >/dev/null 2>&1 || true
+	fi
+	if command -v ip6tables >/dev/null 2>&1; then
+		ip6tables -t mangle -D POSTROUTING -o "$INTERFACE" -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss "@MSS@" >/dev/null 2>&1 || true
+	fi
+	if command -v nft >/dev/null 2>&1; then
+		table="wifiman_mss_${INTERFACE//[^a-zA-Z0-9_]/_}"
+		nft delete table inet "$table" >/dev/null 2>&1 || true
+	fi
+	return 0
+}
+
+EOF
+  then
+    rm -f "$snippet"
+    printf 'wifiman-runtime: warning: could not build the TCP MSS clamp for %s\n' \
+      "$target" >&2
+    return 0
+  fi
+
+  tmp=$(mktemp "$target.wifiman-mss.XXXXXX" 2>/dev/null) || {
+    rm -f "$snippet"
+    printf 'wifiman-runtime: warning: could not create a temp file to clamp TCP MSS in %s\n' \
+      "$target" >&2
+    return 0
+  }
+
+  if ! awk -v snippet="$snippet" '
+    $0 == "# ~~ function override insertion point ~~" {
+      while ((getline line < snippet) > 0) print line
+      close(snippet)
+    }
+    /^[[:space:]]*set_mtu_up$/ {
+      print
+      print "\twifiman_mss_clamp"
+      next
+    }
+    /^del_if\(\) \{/ {
+      print
+      print "\twifiman_mss_unclamp"
+      next
+    }
+    { print }
+  ' "$target" > "$tmp"; then
+    rm -f "$snippet" "$tmp"
+    printf 'wifiman-runtime: warning: could not patch TCP MSS clamp into %s\n' \
+      "$target" >&2
+    return 0
+  fi
+  rm -f "$snippet"
+
+  mode=$(stat -c '%a' "$target" 2>/dev/null || true)
+  # As with the MTU cap, write through the existing target so it keeps its
+  # runtime-helper label, and keep a backup in case the write is cut short.
+  backup=$(mktemp "$target.wifiman-mss-orig.XXXXXX" 2>/dev/null) || backup=
+  if [[ -n "$backup" ]]; then
+    cat "$target" > "$backup" 2>/dev/null || { rm -f "$backup"; backup=; }
+  fi
+  if cat "$tmp" > "$target" 2>/dev/null; then
+    chmod "${mode:-0755}" "$target"
+  else
+    if [[ -n "$backup" ]]; then
+      cat "$backup" > "$target" 2>/dev/null || true
+    fi
+    printf 'wifiman-runtime: warning: could not rewrite %s; leaving TCP MSS unclamped\n' \
+      "$target" >&2
+  fi
+  rm -f "$tmp" ${backup:+"$backup"}
+}
+
 cap_wg_quick_mtu "$RUNTIME_ROOT/wg-quick"
+cap_wg_quick_mss "$RUNTIME_ROOT/wg-quick"
 
 # Preserve service.json across runs, but avoid copying when source and target
 # already match. When the symlink is already valid (skip_service_sync), the
