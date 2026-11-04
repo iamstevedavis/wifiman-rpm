@@ -10,7 +10,7 @@
 
 Fedora RPM packaging for **WiFiman Desktop 1.3.0**, with a KDE/app-menu launcher, system WebKitGTK 4.1 runtime, release artifacts, and SELinux helper tooling for newer Fedora releases.
 
-Upstream 1.3.0 links against the system WebKitGTK 4.1 / libsoup3 stack, so this package no longer stages a private compatibility runtime. The effective in-app updater fix is tracked separately in #23.
+Upstream 1.3.0 links against the system WebKitGTK 4.1 / libsoup3 stack, so this package no longer stages a private compatibility runtime. The RPM build also disables the upstream in-app updater scope so the packaged app does not offer to install an upstream `.deb`; update WiFiman through `dnf` instead.
 
 ## Highlights
 
@@ -47,7 +47,22 @@ This project repackages WiFiman Desktop for Fedora users who want a native RPM i
 - downloads upstream `wifiman-desktop-1.3.0-amd64.deb`
 - extracts the app payload
 - stages a runnable app tree with a wrapper
+- disables the in-app updater scope in the staged Tauri app
 - builds an RPM from that staged tree using the host WebKitGTK 4.1 stack
+
+## Updater behavior
+
+WiFiman Desktop checks for updates from its Tauri frontend by fetching `https://desktop.ea.wifiman.com/wifiman-desktop-linux-manifest.json`. The packaged `.env` `UPDATER_DELAY` and `UPDATER_INTERVAL` values are not read by the shipped binaries, so changing them does not suppress the prompt.
+
+The staging step rewrites the embedded `tauri-plugin-http` scope entry for that CDN to the reserved, non-resolving `https://updater-block9.invalid/*` host. The frontend request is then rejected locally and the update prompt does not appear. Install updates from the RPM repository with `dnf`.
+
+Because this is a binary patch, re-validate it whenever the upstream version changes. Staging fails loudly if the expected scope entry is missing or appears more than once, rather than silently shipping an updater that works again. To inspect an extracted upstream binary:
+
+```bash
+python3 scripts/patch-wifiman-updater-scope.py --check /path/to/usr/bin/wifiman-desktop
+```
+
+The check succeeds only when exactly one patched or unpatched scope entry is present.
 
 ## Requirements
 
