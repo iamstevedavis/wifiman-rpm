@@ -8,7 +8,9 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 APP_ROOT="$WORK_DIR/app-root-src"
 HOME_DIR="$WORK_DIR/home"
 XDG_DIR="$WORK_DIR/xdg-state"
-mkdir -p "$APP_ROOT" "$HOME_DIR" "$XDG_DIR"
+XDG_DATA_DIR="$WORK_DIR/xdg-data"
+XDG_CONFIG_DIR="$WORK_DIR/xdg-config"
+mkdir -p "$APP_ROOT" "$HOME_DIR" "$XDG_DIR" "$XDG_DATA_DIR" "$XDG_CONFIG_DIR"
 
 cat > "$APP_ROOT/wi-fiman-desktop-bin" <<'EOF'
 #!/usr/bin/env bash
@@ -20,7 +22,9 @@ mv service.json.tmp service.json
 EOF
 chmod +x "$APP_ROOT/wi-fiman-desktop-bin"
 
-HOME="$HOME_DIR" XDG_STATE_HOME="$XDG_DIR" APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+HOME="$HOME_DIR" XDG_STATE_HOME="$XDG_DIR" \
+  XDG_DATA_HOME="$XDG_DATA_DIR" XDG_CONFIG_HOME="$XDG_CONFIG_DIR" \
+  APP_ROOT="$APP_ROOT" bash "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 
 STATE_ROOT="$XDG_DIR/wifiman-desktop"
 test -d "$STATE_ROOT/app-root"

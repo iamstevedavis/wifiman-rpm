@@ -19,8 +19,10 @@ grep -qx 'Categories=Network;' "$DESKTOP_FILE"
 # runs. Without a matching StartupWMClass the taskbar shows a generic icon.
 grep -qx 'StartupWMClass=wi-fiman-desktop-bin' "$DESKTOP_FILE"
 grep -qx 'MimeType=x-scheme-handler/wifiman-desktop-dl;' "$DESKTOP_FILE"
-grep -q 'RUNTIME_EXTRA_ITEMS=(wi-fiman-desktop-bin)' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
-grep -q 'exec "$RUNTIME_ROOT/wi-fiman-desktop-bin"' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+grep -qx 'UI_BINARY_NAME=wi-fiman-desktop-bin' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+grep -qx 'DEEP_LINK_HANDLER_NAME="$UI_BINARY_NAME-handler.desktop"' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+grep -qx 'RUNTIME_EXTRA_ITEMS=("$UI_BINARY_NAME")' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
+grep -qx 'exec "$RUNTIME_ROOT/$UI_BINARY_NAME" "$@"' "$ROOT_DIR/scripts/wifiman-desktop-launcher.sh"
 grep -q "StartupWMClass=wi-fiman-desktop-bin' %{buildroot}" "$SPEC_FILE"
 
 grep -q 'Source5:        wifiman-desktop.desktop' "$SPEC_FILE"

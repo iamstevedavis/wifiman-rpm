@@ -22,10 +22,24 @@ RUNTIME_ROOT="$STATE_ROOT/app-root"
 # under that exact name before the app starts. The app checks only whether the
 # scheme's default handler has that name and then leaves the file alone.
 DEEP_LINK_SCHEME=x-scheme-handler/wifiman-desktop-dl
-DEEP_LINK_HANDLER_NAME=wi-fiman-desktop-bin-handler.desktop
+UI_BINARY_NAME=wi-fiman-desktop-bin
+DEEP_LINK_HANDLER_NAME="$UI_BINARY_NAME-handler.desktop"
+
+# Escape a path for a double-quoted Exec= value in a desktop entry. Backslash,
+# backtick, dollar and double quote are special inside quotes, and percent
+# starts a field code.
+desktop_exec_quote() {
+  local value=$1
+  value=${value//\\/\\\\}
+  value=${value//\`/\\\`}
+  value=${value//\$/\\\$}
+  value=${value//\"/\\\"}
+  value=${value//%/%%}
+  printf '%s' "$value"
+}
 
 ensure_deep_link_handler() {
-  local data_home apps_dir handler launcher_path tmp current
+  local data_home apps_dir handler launcher_path exec_path tmp current
 
   if [[ -n ${XDG_DATA_HOME:-} ]]; then
     data_home=$XDG_DATA_HOME
@@ -39,22 +53,30 @@ ensure_deep_link_handler() {
   handler="$apps_dir/$DEEP_LINK_HANDLER_NAME"
   launcher_path=$(readlink -f -- "${BASH_SOURCE[0]}" 2>/dev/null || true)
   [[ -n "$launcher_path" ]] || launcher_path=${BASH_SOURCE[0]}
+  exec_path=$(desktop_exec_quote "$launcher_path")
 
   mkdir -p "$apps_dir" 2>/dev/null || return 0
   tmp=$(mktemp "$apps_dir/.wifiman-deep-link.XXXXXX" 2>/dev/null) || return 0
 
-  cat > "$tmp" <<EOF
+  if ! cat > "$tmp" <<EOF
 [Desktop Entry]
 Type=Application
 Name=WiFiman Desktop
 Comment=Discover devices and access Teleport VPNs
-Exec="$launcher_path" %u
+Exec="$exec_path" %u
 Icon=wifiman-desktop
 Terminal=false
 NoDisplay=true
 MimeType=$DEEP_LINK_SCHEME;
 EOF
-  chmod 0644 "$tmp" 2>/dev/null || true
+  then
+    rm -f "$tmp"
+    return 0
+  fi
+  if ! chmod 0644 "$tmp"; then
+    rm -f "$tmp"
+    return 0
+  fi
 
   if [[ -f "$handler" ]] && cmp -s "$tmp" "$handler"; then
     rm -f "$tmp"
@@ -81,7 +103,7 @@ runtime_helper="$(dirname -- "${BASH_SOURCE[0]}")/wifiman-runtime.sh"
 if [[ ! -f "$runtime_helper" ]]; then
   runtime_helper="$APP_ROOT/wifiman-runtime.sh"
 fi
-RUNTIME_EXTRA_ITEMS=(wi-fiman-desktop-bin)
+RUNTIME_EXTRA_ITEMS=("$UI_BINARY_NAME")
 source "$runtime_helper"
 
 # Upstream 1.3.0 links against the host WebKitGTK 4.1 / libsoup3 stack, so no
@@ -90,4 +112,4 @@ source "$runtime_helper"
 ensure_deep_link_handler
 
 cd "$RUNTIME_ROOT"
-exec "$RUNTIME_ROOT/wi-fiman-desktop-bin" "$@"
+exec "$RUNTIME_ROOT/$UI_BINARY_NAME" "$@"
